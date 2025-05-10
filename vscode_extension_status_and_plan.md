@@ -89,6 +89,7 @@ The primary goal is to create a Visual Studio Code extension that integrates Ope
 5.  **Thorough Testing:**
     *   Test with a live OpenHands server across various scenarios (complex prompts, server errors, disconnections, long messages).
     *   Test edge cases for UI and communication.
+    *   Improve server/agent error reporting: Investigate how the extension can be made more aware of fatal errors or a non-responsive agent on the server-side, even if the basic socket connection remains active.
 6.  **Documentation:** Create/update a `README.md` specifically for the extension within its directory.
 7.  **Pull Request & Review:** (If this were part of a larger collaborative effort on `enyst/playground` or `enyst/play`) Create a pull request from `experimental-extension` to a main development branch.
 
@@ -97,12 +98,13 @@ The primary goal is to create a Visual Studio Code extension that integrates Ope
 As of the last set of changes:
 
 *   **Phase 1 (Basic Extension Setup & UI) is COMPLETE.**
-*   **Phase 2 (Backend Communication - HTTP & Socket.IO) is COMPLETE.**
+*   **Phase 2 (Backend Communication - HTTP & Socket.IO) is LARGELY COMPLETE (Client-Side).**
     *   The extension successfully initiates conversations via HTTP.
     *   It connects via Socket.IO and handles sending user prompts (`oh_user_action`).
     *   It receives and processes `oh_event` messages from the agent.
     *   The webview is updated to display these communications.
+    *   **Key Finding from Initial Test (2025-05-09):** During the first end-to-end test with a live server, it was discovered that while the extension successfully sent the initial prompt and subsequent prompts, the OpenHands *agent* on the server-side experienced a fatal error shortly after initialization. This meant the server's Socket.IO connection remained open, but the agent wasn't processing further messages. This explains why the user's second prompt ("Write a short sentence...") did not yield a new, meaningful response from the agent, even though the extension correctly sent it.
 *   The code has been committed to the `experimental-extension` branch.
 *   This branch, along with `main`, has been pushed to the new `play` remote (`git@github.com:enyst/play.git`).
 
-The extension is now functionally capable of basic interaction with the OpenHands backend. The immediate next steps would focus on **Phase 3: Refinements & Testing** if further development is desired.
+The extension's client-side logic for communication (HTTP init, Socket.IO send/receive) appears to be functioning as designed. However, robust end-to-end operation requires a stable agent on the backend. The immediate next steps would focus on **Phase 3: Refinements & Testing**, with an emphasis on agent stability and better error propagation from the server.
