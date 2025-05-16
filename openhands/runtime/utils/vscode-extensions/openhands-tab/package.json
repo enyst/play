@@ -3,6 +3,7 @@
   "displayName": "OpenHands Tab",
   "description": "Adds a custom OpenHands tab to the VS Code activity bar.",
   "version": "0.0.1",
+  "license": "UNLICENSED",
   "publisher": "openhands",
   "repository": {
     "type": "git",
@@ -37,6 +38,16 @@
           "type": "webview"
         }
       ]
+    }
+  },
+  "configuration": {
+    "title": "OpenHands",
+    "properties": {
+      "openhands.serverUrl": {
+        "type": "string",
+        "default": "http://localhost:3000",
+        "description": "The URL of the OpenHands server."
+      }
     }
   },
   "scripts": {
