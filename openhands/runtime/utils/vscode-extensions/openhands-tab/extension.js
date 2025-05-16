@@ -31,12 +31,17 @@ class OpenHandsViewProvider {
     _extensionUri;
     _socket = null;
     _conversationId = null;
-    _SERVER_URL = 'http://localhost:3000'; // Make this configurable later if needed
+    // _SERVER_URL is now set in the constructor from configuration
     _context; // To store the extension context for disposables
+    _agentResponseTimer = null;
+    _AGENT_RESPONSE_TIMEOUT_MS = 30000; // 30 seconds, make configurable later if needed
 
     constructor(extensionUri, context) {
         this._extensionUri = extensionUri;
         this._context = context; // Store context
+        // Get server URL from settings
+        const configuredUrl = vscode.workspace.getConfiguration('openhands').get('serverUrl');
+        this._SERVER_URL = configuredUrl || 'http://localhost:3000'; // Use default if not set
     }
 
     resolveWebviewView(webviewView, context, _token) {
@@ -437,6 +442,11 @@ class OpenHandsViewProvider {
         });
 
         this._socket.on('oh_event', (data) => {
+            if (this._agentResponseTimer) {
+                clearTimeout(this._agentResponseTimer);
+                this._agentResponseTimer = null;
+                console.log('OpenHandsViewProvider: Agent response received, timer cleared.');
+            }
             // console.log('OpenHandsViewProvider: Received oh_event:', data); // Can be very verbose
             this.postAgentResponseToWebview(data); // Forward complete data object to webview
         });
@@ -483,6 +493,17 @@ class OpenHandsViewProvider {
                     if (this._socket.connected) {
                         const payload = { action: 'message', args: { content: promptText, image_urls: [] } };
                         console.log('OpenHandsViewProvider: sendSocketMessage - Socket was/became connected. Sending oh_user_action immediately.', payload);
+                        // Clear any existing timer
+                        if (this._agentResponseTimer) {
+                            clearTimeout(this._agentResponseTimer);
+                            this._agentResponseTimer = null;
+                        }
+                        // Start new timer
+                        this._agentResponseTimer = setTimeout(() => {
+                            console.warn('OpenHandsViewProvider: Agent response timeout (after reconnect).');
+                            this.postAgentResponseToWebview({ type: 'status', error: true, message: 'Agent not responding after reconnect. Please check the OpenHands server or try sending another message.' });
+                            this._agentResponseTimer = null; // Clear timer ID after firing
+                        }, this._AGENT_RESPONSE_TIMEOUT_MS);
                         this._socket.emit('oh_user_action', payload);
                     } else {
                         // If socket is still not connected (e.g., connectSocket is async or connection is in progress),
@@ -491,6 +512,18 @@ class OpenHandsViewProvider {
                         this._socket.once('connect', () => {
                             console.log('OpenHandsViewProvider: sendSocketMessage - Socket connected (queued). Sending message: [%s...]', promptText.substring(0,50));
                             const payload = { action: 'message', args: { content: promptText, image_urls: [] } };
+                            // Clear any existing timer
+                            if (this._agentResponseTimer) {
+                                clearTimeout(this._agentResponseTimer);
+                                this._agentResponseTimer = null;
+                            }
+                            // Start new timer
+                            this._agentResponseTimer = setTimeout(() => {
+                                console.warn('OpenHandsViewProvider: Agent response timeout (queued message).');
+                                this.postAgentResponseToWebview({ type: 'status', error: true, message: 'Agent not responding after connect. Please check the OpenHands server or try sending another message.' });
+                                this._agentResponseTimer = null; // Clear timer ID after firing
+                            }, this._AGENT_RESPONSE_TIMEOUT_MS);
+
                             this._socket.emit('oh_user_action', payload);
                         });
                     }
@@ -513,6 +546,17 @@ class OpenHandsViewProvider {
             },
         };
         console.log('OpenHandsViewProvider: sendSocketMessage - Socket connected. Sending oh_user_action:', payload);
+        // Clear any existing timer
+        if (this._agentResponseTimer) {
+            clearTimeout(this._agentResponseTimer);
+            this._agentResponseTimer = null;
+        }
+        // Start new timer
+        this._agentResponseTimer = setTimeout(() => {
+            console.warn('OpenHandsViewProvider: Agent response timeout.');
+            this.postAgentResponseToWebview({ type: 'status', error: true, message: 'Agent not responding. Please check the OpenHands server or try sending another message. If the issue persists, you may need to start a new conversation.' });
+            this._agentResponseTimer = null; // Clear timer ID after firing
+        }, this._AGENT_RESPONSE_TIMEOUT_MS);
         this._socket.emit('oh_user_action', payload);
     }
 

@@ -1,5 +1,29 @@
 # VS Code OpenHands Tab Extension - Project Plan & Status
 
+## 0. Open Questions regarding MVP features and priorities:
+
+OpenHands-Agent asked:
+1.  **Core Agent Interaction:**
+    *   You mentioned you're testing agent functionality. What are the absolute minimum agent actions/responses that *must* be reliably handled and displayed in the extension for an MVP? (e.g., simple text messages, executing a bash command and showing output, file reads/writes displayed as observations).
+    *   How should complex agent outputs (e.g., long file contents, very verbose observations) be handled in the MVP? Truncate with an option to see more? Show all?
+
+2.  **Error Handling and Stability (MVP Focus):**
+    *   Given the previous issues with agent stability, what's the MVP expectation for how the *extension* should behave when the *server-side agent* crashes or becomes unresponsive (beyond the current timeout message)?
+    *   Should there be an explicit "Reset/Start New Conversation" button in the UI for the MVP if things go wrong, or is restarting VS Code / reopening the tab acceptable for now?
+
+3.  **UI/UX Must-Haves for MVP:**
+    *   Is the current plain text display of agent messages sufficient for MVP, or is basic markdown rendering (e.g., for code blocks, bold/italics) a must-have?
+    *   Are explicit loading indicators (e.g., "Agent is thinking...") critical for the MVP, or is the current implicit waiting acceptable?
+
+4.  **Configuration & Setup (MVP):**
+    *   The server URL is configurable. Are there any other configuration aspects essential for an MVP release (even if "internal" or for testing)?
+
+5.  **"Definition of Done" for MVP:**
+    *   What key scenarios would you test to say "the MVP is working and meets its goals"?
+
+Your answers to these will help us prioritize the remaining items in Phase 3 and define a clear scope for what you consider a usable MVP. Let me know how the agent testing is going as well, as that heavily influences the next steps!
+
+
 ## 1. Aim of the Extension
 
 The primary goal is to create a Visual Studio Code extension that integrates OpenHands directly into the editor. This extension will:
@@ -79,13 +103,14 @@ The primary goal is to create a Visual Studio Code extension that integrates Ope
 
 **Phase 3: Refinements & Testing (Future/Optional)**
 
-1.  **Error Handling & Resilience:** Enhance robustness of error handling (e.g., retry mechanisms, clearer user feedback for persistent failures).
+1.  **Error Handling & Resilience:** Enhance robustness of error handling. (e.g., retry mechanisms, clearer user feedback for persistent failures).
+    *   **Completed (Partial):** Implemented a client-side agent response timeout to notify users if the agent appears unresponsive.
 2.  **UI/UX Enhancements:**
     *   Improve formatting for code blocks, markdown, and other rich content from the agent.
     *   Implement loading indicators or busy states more explicitly.
     *   Add functionality to clear conversation history or start a new conversation explicitly.
-3.  **Configuration:** Make `_SERVER_URL` configurable via VS Code settings.
-4.  **License:** Address `package.json` license warning (e.g., add `UNLICENSED` or choose an open-source license and add a `LICENSE` file).
+3.  **Configuration:** Make `_SERVER_URL` configurable via VS Code settings. **(Completed)**
+4.  **License:** Address `package.json` license warning. **(Completed: "UNLICENSED" added)**
 5.  **Thorough Testing:**
     *   Test with a live OpenHands server across various scenarios (complex prompts, server errors, disconnections, long messages).
     *   Test edge cases for UI and communication.
@@ -99,12 +124,16 @@ As of the last set of changes:
 
 *   **Phase 1 (Basic Extension Setup & UI) is COMPLETE.**
 *   **Phase 2 (Backend Communication - HTTP & Socket.IO) is LARGELY COMPLETE (Client-Side).**
-    *   The extension successfully initiates conversations via HTTP.
-    *   It connects via Socket.IO and handles sending user prompts (`oh_user_action`).
-    *   It receives and processes `oh_event` messages from the agent.
-    *   The webview is updated to display these communications.
-    *   **Key Finding from Initial Test (2025-05-09):** During the first end-to-end test with a live server, it was discovered that while the extension successfully sent the initial prompt and subsequent prompts, the OpenHands *agent* on the server-side experienced a fatal error shortly after initialization. This meant the server's Socket.IO connection remained open, but the agent wasn't processing further messages. This explains why the user's second prompt ("Write a short sentence...") did not yield a new, meaningful response from the agent, even though the extension correctly sent it.
-*   The code has been committed to the `experimental-extension` branch.
-*   This branch, along with `main`, has been pushed to the new `play` remote (`git@github.com:enyst/play.git`).
+    *   The extension successfully initiates conversations via HTTP, connects via Socket.IO, sends prompts, receives events, and updates the webview.
+*   **Phase 3 (Refinements & Testing) - In Progress:**
+    *   Server URL is now configurable via VS Code settings.
+    *   `license` field ("UNLICENSED") added to `package.json`.
+    *   A client-side agent response timeout has been implemented to provide feedback if the agent is unresponsive.
+    *   The extension can be packaged into a `.vsix` file using `vsce package`.
+*   **Key Remaining Challenges & Focus:**
+    *   The primary challenge remains ensuring **OpenHands server-side agent stability** for reliable end-to-end interaction.
+    *   **Thorough end-to-end testing** once the agent is stable.
+    *   Further UI/UX enhancements (e.g., markdown rendering, loading indicators, clear conversation functionality).
+    *   Improving server/agent error reporting and propagation to the extension.
 
-The extension's client-side logic for communication (HTTP init, Socket.IO send/receive) appears to be functioning as designed. However, robust end-to-end operation requires a stable agent on the backend. The immediate next steps would focus on **Phase 3: Refinements & Testing**, with an emphasis on agent stability and better error propagation from the server.
+The extension's client-side is more robust and configurable. The immediate focus for the extension development should be on UI/UX improvements and deeper testing, while server-side agent stability is critical for overall project success.
