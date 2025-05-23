@@ -57,12 +57,28 @@ class OpenHandsViewProvider {
 
         webviewView.webview.onDidReceiveMessage(
             message => {
-                if (!this._view) { 
+                if (!this._view) {
                     return;
                 }
                 switch (message.type) {
                     case 'userPrompt':
                         this.handleUserPrompt(message.text);
+                        return;
+                    case 'startNewConversation':
+                        console.log('OpenHandsViewProvider: Received startNewConversation request.');
+                        if (this._socket) {
+                            this._socket.disconnect();
+                            this._socket = null;
+                        }
+                        this._conversationId = null;
+                        if (this._agentResponseTimer) {
+                            clearTimeout(this._agentResponseTimer);
+                            this._agentResponseTimer = null;
+                        }
+                        // Notify webview to clear its chat
+                        if (this._view && this._view.webview) {
+                            this._view.webview.postMessage({ type: 'clearChat' });
+                        }
                         return;
                 }
             },
@@ -83,74 +99,74 @@ class OpenHandsViewProvider {
                 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
                 <title>OpenHands</title>
                 <style>
-                    body { 
-                        display: flex; 
-                        flex-direction: column; 
-                        height: 100vh; 
-                        margin: 0; 
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; 
-                        background-color: var(--vscode-editor-background); 
-                        color: var(--vscode-editor-foreground); 
+                    body {
+                        display: flex;
+                        flex-direction: column;
+                        height: 100vh;
+                        margin: 0;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+                        background-color: var(--vscode-editor-background);
+                        color: var(--vscode-editor-foreground);
                     }
-                    #messages { 
-                        flex-grow: 1; 
-                        overflow-y: auto; 
-                        padding: 10px; 
-                        border-bottom: 1px solid var(--vscode-sideBar-border, var(--vscode-editorGroup-border)); 
+                    #messages {
+                        flex-grow: 1;
+                        overflow-y: auto;
+                        padding: 10px;
+                        border-bottom: 1px solid var(--vscode-sideBar-border, var(--vscode-editorGroup-border));
                     }
-                    .message { 
-                        margin-bottom: 8px; 
-                        padding: 8px; 
-                        border-radius: 4px; 
+                    .message {
+                        margin-bottom: 8px;
+                        padding: 8px;
+                        border-radius: 4px;
                         max-width: 80%;
                         word-wrap: break-word; /* Ensure long words break and wrap */
                     }
-                    .user-message { 
-                        background-color: var(--vscode-list-activeSelectionBackground); 
-                        color: var(--vscode-list-activeSelectionForeground); 
-                        align-self: flex-end; 
+                    .user-message {
+                        background-color: var(--vscode-list-activeSelectionBackground);
+                        color: var(--vscode-list-activeSelectionForeground);
+                        align-self: flex-end;
                         margin-left: auto; /* Push to the right */
                     }
-                    .agent-message { 
-                        background-color: var(--vscode-editorWidget-background); 
-                        border: 1px solid var(--vscode-editorWidget-border, var(--vscode-contrastBorder)); 
+                    .agent-message {
+                        background-color: var(--vscode-editorWidget-background);
+                        border: 1px solid var(--vscode-editorWidget-border, var(--vscode-contrastBorder));
                         align-self: flex-start;
                         margin-right: auto; /* Push to the left */
                     }
-                    #input-area { 
-                        display: flex; 
-                        padding: 10px; 
-                        border-top: 1px solid var(--vscode-sideBar-border, var(--vscode-editorGroup-border)); 
+                    #input-area {
+                        display: flex;
+                        padding: 10px;
+                        border-top: 1px solid var(--vscode-sideBar-border, var(--vscode-editorGroup-border));
                         background-color: var(--vscode-sideBar-background, var(--vscode-editor-background));
                     }
-                    #prompt-input { 
-                        flex-grow: 1; 
-                        margin-right: 10px; 
-                        border: 1px solid var(--vscode-input-border); 
-                        background-color: var(--vscode-input-background); 
-                        color: var(--vscode-input-foreground); 
-                        border-radius: 3px; 
-                        padding: 6px; 
+                    #prompt-input {
+                        flex-grow: 1;
+                        margin-right: 10px;
+                        border: 1px solid var(--vscode-input-border);
+                        background-color: var(--vscode-input-background);
+                        color: var(--vscode-input-foreground);
+                        border-radius: 3px;
+                        padding: 6px;
                         resize: none; /* Prevent manual resize */
                         font-family: inherit;
                     }
-                    #prompt-input:focus { 
-                        outline: 1px solid var(--vscode-focusBorder); 
-                        border-color: var(--vscode-focusBorder); 
+                    #prompt-input:focus {
+                        outline: 1px solid var(--vscode-focusBorder);
+                        border-color: var(--vscode-focusBorder);
                     }
-                    #send-button { 
-                        background-color: var(--vscode-button-background); 
-                        color: var(--vscode-button-foreground); 
-                        border: none; 
+                    #send-button {
+                        background-color: var(--vscode-button-background);
+                        color: var(--vscode-button-foreground);
+                        border: none;
                         padding: 0px 12px; /* Adjusted padding for height */
                         height: min-content; /* Adjust height to content */
                         align-self: center; /* Vertically center with textarea */
-                        border-radius: 3px; 
-                        cursor: pointer; 
+                        border-radius: 3px;
+                        cursor: pointer;
                         line-height: 2; /* Ensure text is centered vertically */
                     }
-                    #send-button:hover { 
-                        background-color: var(--vscode-button-hoverBackground); 
+                    #send-button:hover {
+                        background-color: var(--vscode-button-hoverBackground);
                     }
                     pre {
                         white-space: pre-wrap;       /* Since CSS 2.1 */
@@ -165,6 +181,9 @@ class OpenHandsViewProvider {
                 <div id="messages">
                     <!-- Chat messages will appear here -->
                 </div>
+                <div id="controls-area" style="padding: 10px; border-bottom: 1px solid var(--vscode-sideBar-border, var(--vscode-editorGroup-border));">
+                    <button id="new-conversation-button" style="margin-bottom: 5px; background-color: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: 1px solid var(--vscode-button-border); padding: 4px 8px; border-radius: 3px; cursor: pointer;">Start New Conversation</button>
+                </div>
                 <div id="input-area">
                     <textarea id="prompt-input" rows="2" placeholder="Enter your prompt..."></textarea>
                     <button id="send-button">Send</button>
@@ -174,6 +193,11 @@ class OpenHandsViewProvider {
                     const messagesDiv = document.getElementById('messages');
                     const promptInput = document.getElementById('prompt-input');
                     const sendButton = document.getElementById('send-button');
+                    const newConversationButton = document.getElementById('new-conversation-button');
+
+                    newConversationButton.addEventListener('click', () => {
+                        vscode.postMessage({ type: 'startNewConversation' });
+                    });
 
                     function addMessage(text, sender) {
                         const msgContainer = document.createElement('div');
@@ -183,11 +207,11 @@ class OpenHandsViewProvider {
                         } else {
                             msgContainer.style.justifyContent = 'flex-start';
                         }
-                        
+
                         const msgDiv = document.createElement('div');
                         msgDiv.classList.add('message');
                         msgDiv.classList.add(sender === 'user' ? 'user-message' : 'agent-message');
-                        
+
                         // To handle markdown-like newlines and code blocks, we can set textContent
                         // and rely on <pre>-like styling for whitespace preservation.
                         // For more complex markdown, a library would be needed.
@@ -208,10 +232,10 @@ class OpenHandsViewProvider {
                         promptInput.value = ''; // Clear input
                         adjustTextareaHeight(); // Adjust height after clearing
                     });
-                    
+
                     promptInput.addEventListener('keydown', (event) => {
                         if (event.key === 'Enter' && !event.shiftKey) {
-                            event.preventDefault(); 
+                            event.preventDefault();
                             sendButton.click();
                         }
                     });
@@ -235,7 +259,7 @@ class OpenHandsViewProvider {
 
                     // Handle messages from extension
                     window.addEventListener('message', event => {
-                        const message = event.data; 
+                        const message = event.data;
                         if (message.type === 'agentResponse') {
                             let agentText = "Received an event from agent."; // Default message
 
@@ -247,14 +271,14 @@ class OpenHandsViewProvider {
                                     agentText = "ERROR: " + message.data.message;
                                 } else if (message.data.type === 'status' && typeof message.data.message === 'string') {
                                     agentText = "STATUS: " + message.data.message;
-                                } 
+                                }
                                 // Then check for OpenHands specific event structures
                                 else if (message.data.action === 'message' && message.data.args && typeof message.data.args.content === 'string') {
                                     agentText = message.data.args.content;
                                 } else if (message.data.action === 'think' && message.data.args && typeof message.data.args.thought === 'string') {
                                     // Optionally display thoughts, or just log them. For now, display.
                                     agentText = "[Thinking] " + message.data.args.thought;
-                                } else if (message.data.observation && typeof message.data.content === 'string') { 
+                                } else if (message.data.observation && typeof message.data.content === 'string') {
                                     // General observation with content (e.g. CmdOutputObservation)
                                     // Could be too verbose. For now, show it.
                                     agentText = "[Observation] " + message.data.observation + ": " + message.data.content;
@@ -274,6 +298,9 @@ class OpenHandsViewProvider {
                                 }
                             }
                            addMessage(agentText, 'agent');
+                        } else if (message.type === 'clearChat') {
+                            messagesDiv.innerHTML = '';
+                            addMessage('New conversation started. Enter a prompt.', 'agent'); // Optional: notify user
                         }
                     });
                 </script>
@@ -311,7 +338,7 @@ class OpenHandsViewProvider {
         }
 
         // Case 2: Conversation ID exists, but socket is not connected or doesn't exist. Try to connect/reconnect socket.
-        if (this._conversationId) { 
+        if (this._conversationId) {
             console.log('OpenHandsViewProvider: initiateConversation - Case 2: Convo ID exists, socket not ready. Attempting to connect socket.');
             this.connectSocket(); // This will try to create/recreate and connect the socket.
             if (this._socket) {
@@ -328,7 +355,7 @@ class OpenHandsViewProvider {
             }
             return;
         }
-        
+
         // Case 3: No Conversation ID. This is a brand new conversation, requires HTTP POST.
         console.log('OpenHandsViewProvider: initiateConversation - Case 3: No Convo ID. Initiating new conversation via HTTP POST.');
         const postData = JSON.stringify({ initial_user_msg: initialPrompt });
@@ -405,7 +432,7 @@ class OpenHandsViewProvider {
             this._socket.removeAllListeners();
             this._socket = null; // Ensure we create a new instance below
         }
-        
+
         // If socket exists but is not connected (could be from a failed previous attempt for the *same* conversationId)
         // ensure it's cleaned up before creating a new one to avoid multiple instances for the same ID.
         if (this._socket && !this._socket.connected) {
@@ -420,7 +447,7 @@ class OpenHandsViewProvider {
             this.postAgentResponseToWebview({ error: true, message: 'Error: Missing conversation ID for agent connection.'});
             return;
         }
-        
+
         const serverAddress = this._SERVER_URL;
         console.log(`OpenHandsViewProvider: Attempting to connect Socket.IO to ${serverAddress} for conversation ${this._conversationId}`);
 
@@ -463,7 +490,7 @@ class OpenHandsViewProvider {
             console.error('OpenHandsViewProvider: Socket.IO general error event:', error);
             this.postAgentResponseToWebview({ error: true, message: `Agent connection error: ${error.message || String(error)}` });
         });
-        
+
         this._socket.on('connect_error', (error) => {
             console.error('OpenHandsViewProvider: Socket.IO connection establishment error:', error);
             this.postAgentResponseToWebview({ error: true, message: `Failed to connect to agent: ${error.message || String(error)}` });
@@ -482,13 +509,13 @@ class OpenHandsViewProvider {
         if (!this._socket || !this._socket.connected) {
             console.warn('OpenHandsViewProvider: sendSocketMessage - Socket not connected. Prompt: [%s...]', promptText.substring(0,50));
             this.postAgentResponseToWebview({ error: true, message: 'Agent not connected. Attempting to send/reconnect...' });
-            
+
             if(this._conversationId) {
                 console.log('OpenHandsViewProvider: sendSocketMessage - Attempting to ensure socket is connected for existing conversationId.');
                 // Ensure a connection attempt is made. connectSocket() handles existing/new connections.
-                this.connectSocket(); 
-                
-                if (this._socket) { 
+                this.connectSocket();
+
+                if (this._socket) {
                     // If connectSocket() immediately connected or it was already connected and now this._socket is valid and connected:
                     if (this._socket.connected) {
                         const payload = { action: 'message', args: { content: promptText, image_urls: [] } };
@@ -504,6 +531,7 @@ class OpenHandsViewProvider {
                             this.postAgentResponseToWebview({ type: 'status', error: true, message: 'Agent not responding after reconnect. Please check the OpenHands server or try sending another message.' });
                             this._agentResponseTimer = null; // Clear timer ID after firing
                         }, this._AGENT_RESPONSE_TIMEOUT_MS);
+                        this.postAgentResponseToWebview({ type: 'status', message: 'Agent is processing...' });
                         this._socket.emit('oh_user_action', payload);
                     } else {
                         // If socket is still not connected (e.g., connectSocket is async or connection is in progress),
@@ -524,6 +552,7 @@ class OpenHandsViewProvider {
                                 this._agentResponseTimer = null; // Clear timer ID after firing
                             }, this._AGENT_RESPONSE_TIMEOUT_MS);
 
+                            this.postAgentResponseToWebview({ type: 'status', message: 'Agent is processing...' });
                             this._socket.emit('oh_user_action', payload);
                         });
                     }
@@ -534,7 +563,7 @@ class OpenHandsViewProvider {
                 console.error('OpenHandsViewProvider: sendSocketMessage - Cannot send message as no conversationId exists to establish connection.');
                 this.postAgentResponseToWebview({ error: true, message: 'Cannot send message: No active conversation. Please start a new one.' });
             }
-            return; 
+            return;
         }
 
         // Socket is connected and ready, send the message directly.
@@ -557,6 +586,7 @@ class OpenHandsViewProvider {
             this.postAgentResponseToWebview({ type: 'status', error: true, message: 'Agent not responding. Please check the OpenHands server or try sending another message. If the issue persists, you may need to start a new conversation.' });
             this._agentResponseTimer = null; // Clear timer ID after firing
         }, this._AGENT_RESPONSE_TIMEOUT_MS);
+        this.postAgentResponseToWebview({ type: 'status', message: 'Agent is processing...' });
         this._socket.emit('oh_user_action', payload);
     }
 
