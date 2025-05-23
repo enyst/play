@@ -42,6 +42,15 @@ The primary goal is to create a Visual Studio Code extension that integrates Ope
 *   Display the full interaction (user prompts and agent responses/actions) in a chat-like view.
 *   Facilitate communication with the OpenHands backend server.
 
+### 1.1. Guiding Principle: Maximize Reuse from Web Frontend
+
+To accelerate development, ensure consistency, and leverage existing solutions, this extension will strive to:
+
+*   **Reuse Code and Libraries:** Wherever feasible, adapt or directly use code, components, and libraries from the existing OpenHands web frontend.
+*   **Align on Technology and Style:** This includes adopting TypeScript as the primary language for the extension's webview and potentially parts of the extension host logic. Code style, state management approaches (e.g., hooks if applicable in the webview context), and general architectural patterns should also align with the web frontend.
+*   **Shared UI/UX:** Aim for a user experience that is familiar to users of the web frontend, particularly in how chat interactions are displayed and managed.
+
+
 ## 2. User-Agent Chat Flow
 
 1.  The user opens the "OpenHands" tab in VS Code.
@@ -109,12 +118,23 @@ The primary goal is to create a Visual Studio Code extension that integrates Ope
     *   Display different types of information appropriately.
 6.  **Commit for Integration** (e.g., `8bd08f86`).
 
-**Phase 3: Refinements & Testing (Future/Optional)**
+**Phase 3: Core Improvements, Refinements & Testing**
+
+
+0.  **Foundation: TypeScript Rewrite & Code Restructuring (High Priority):**
+    *   **Goal:** Transition the existing `extension.js` (and its associated webview HTML/JS) to TypeScript to improve maintainability, enable better tooling, and align with modern web development practices (and potentially the main OpenHands frontend).
+    *   **Tasks:**
+        *   Convert `extension.js` (extension host part) to TypeScript (`.ts`).
+        *   Convert the webview's inline JavaScript (currently in `getWebviewContent`) to a separate TypeScript file (`.ts` or `.tsx` if using a framework like React/Vue later, though not assumed for now).
+        *   Set up a TypeScript build process (e.g., using `tsc` or a bundler like Webpack/esbuild if deemed necessary) to compile TypeScript to JavaScript for the extension and webview.
+        *   Refactor the current monolithic structure of `extension.js` and the webview's JavaScript into smaller, more manageable modules/components.
+        *   Establish clear separation of concerns (e.g., UI, state management, communication logic).
+    *   **Rationale:** This foundational step is crucial for long-term scalability, developer experience, and to facilitate easier reuse of code/patterns from the main web frontend. It will also make implementing subsequent features more robust.
 
 1.  **Error Handling & Resilience:** Enhance robustness of error handling. (e.g., retry mechanisms, clearer user feedback for persistent failures).
     *   **Completed (Partial):** Implemented a client-side agent response timeout to notify users if the agent appears unresponsive.
 2.  **UI/UX Enhancements:**
-    *   Improve formatting for code blocks, markdown, and other rich content from the agent.
+    *   Improve formatting for code blocks, markdown, and other rich content from the agent. (Align with web frontend, reuse libraries like `markdown-it` or similar if used by the main frontend).
     *   Implement loading indicators or busy states more explicitly. **(Basic "Agent is processing..." status implemented)**
     *   Add functionality to clear conversation history or start a new conversation explicitly. **(Completed: "Start New Conversation" button implemented)**
 3.  **Configuration:** Make `_SERVER_URL` configurable via VS Code settings. **(Completed)**
@@ -139,6 +159,7 @@ As of the last set of changes:
     *   A client-side agent response timeout has been implemented to provide feedback if the agent is unresponsive.
     *   The extension can be packaged into a `.vsix` file using `vsce package`.
 *   **Key Remaining Challenges & Focus:**
+    *   **Transition to TypeScript and modular code structure** as a foundational step for future development and alignment with the web frontend.
     *   **OpenHands server-side agent stability** was a primary challenge, but has been significantly improved, allowing for more reliable end-to-end interaction. Continued monitoring is advised.
     *   **Thorough end-to-end testing** is now more feasible with improved agent stability.
     *   Further UI/UX enhancements (e.g., markdown rendering, loading indicators, clear conversation functionality).
