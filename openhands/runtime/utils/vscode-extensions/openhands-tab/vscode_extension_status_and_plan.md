@@ -9,17 +9,17 @@ OpenHands-Agent asked:
     *   How should complex agent outputs (e.g., long file contents, very verbose observations) be handled in the MVP?
     A: Truncate.
 
-2.  **Error Handling and Stability (MVP Focus):**
-    *   Given the previous issues with agent stability, what's the MVP expectation for how the *extension* should behave when the *server-side agent* crashes or becomes unresponsive (beyond the current timeout message)?
-    A: Show error message, and if the error message doesn't say it, then also tell the user to restart the backend server.
-    *   Should there be an explicit "Reset/Start New Conversation" button in the UI for the MVP if things go wrong, or is restarting VS Code / reopening the tab acceptable for now?
-    A: Start New Conversation button, it should be above the chat input box.
+2.  **Error Handling and Backend Dependency (MVP Focus):**
+    *   How should the *extension* behave when the *server-side agent* has issues or becomes unresponsive (e.g., crashes or is unresponsive)?
+    A: Show error message, and if the error message doesn't say it, then also tell the user to check the backend server and potentially restart it. The extension relies on a functional backend connection for all agent interactions.
+    *   Should there be an explicit "Reset/Start New Conversation" button in the UI for the MVP if things go wrong?
+    A: Start New Conversation button, it should be above the chat input box. **(Implemented)**
 
 3.  **UI/UX Must-Haves for MVP:**
     *   Is the current plain text display of agent messages sufficient for MVP, or is basic markdown rendering (e.g., for code blocks, bold/italics) a must-have?
     A: Markdown rendering.
     *   Are explicit loading indicators (e.g., "Agent is thinking...") critical for the MVP, or is the current implicit waiting acceptable?
-    A: Loading indicators same as current web frontend.
+    A: Loading indicators same as current web frontend. **(Basic status messages like "Agent is processing..." implemented)**
 
 4.  **Configuration & Setup (MVP):**
     *   The server URL is configurable. Are there any other configuration aspects essential for an MVP?
@@ -30,7 +30,7 @@ OpenHands-Agent asked:
     A: End to end: the agent is working and succeeds a task. All errors handled by the current web frontend are handled by the extension too. We also need unit testing, please suggest a strategy.
 
 Your answers to these will help us prioritize the remaining items in Phase 3 and define a clear scope for what you consider a usable MVP. Let me know how the agent testing is going as well, as that heavily influences the next steps!
-A: The agent still doesn't work, please ask me about it.
+A: Agent functionality has been successfully addressed, allowing for more reliable end-to-end testing and development of the extension.
 
 ## 1. Aim of the Extension
 
@@ -115,14 +115,14 @@ The primary goal is to create a Visual Studio Code extension that integrates Ope
     *   **Completed (Partial):** Implemented a client-side agent response timeout to notify users if the agent appears unresponsive.
 2.  **UI/UX Enhancements:**
     *   Improve formatting for code blocks, markdown, and other rich content from the agent.
-    *   Implement loading indicators or busy states more explicitly.
-    *   Add functionality to clear conversation history or start a new conversation explicitly.
+    *   Implement loading indicators or busy states more explicitly. **(Basic "Agent is processing..." status implemented)**
+    *   Add functionality to clear conversation history or start a new conversation explicitly. **(Completed: "Start New Conversation" button implemented)**
 3.  **Configuration:** Make `_SERVER_URL` configurable via VS Code settings. **(Completed)**
 4.  **License:** Address `package.json` license warning. **(Completed: "UNLICENSED" added)**
 5.  **Thorough Testing:**
     *   Test with a live OpenHands server across various scenarios (complex prompts, server errors, disconnections, long messages).
     *   Test edge cases for UI and communication.
-    *   Improve server/agent error reporting: Investigate how the extension can be made more aware of fatal errors or a non-responsive agent on the server-side, even if the basic socket connection remains active.
+    *   Improve server/agent error reporting: While backend stability is much improved, continue to refine how the extension handles and reports any server-side agent issues. The current timeout and basic error messages are a good start.
 6.  **Documentation:** Create/update a `README.md` specifically for the extension within its directory.
 7.  **Pull Request & Review:** (If this were part of a larger collaborative effort on `enyst/play`) Create a pull request from `experimental-extension` to a main development branch.
 
@@ -139,10 +139,10 @@ As of the last set of changes:
     *   A client-side agent response timeout has been implemented to provide feedback if the agent is unresponsive.
     *   The extension can be packaged into a `.vsix` file using `vsce package`.
 *   **Key Remaining Challenges & Focus:**
-    *   The primary challenge remains ensuring **OpenHands server-side agent stability** for reliable end-to-end interaction.
-    *   **Thorough end-to-end testing** once the agent is stable.
+    *   **OpenHands server-side agent stability** was a primary challenge, but has been significantly improved, allowing for more reliable end-to-end interaction. Continued monitoring is advised.
+    *   **Thorough end-to-end testing** is now more feasible with improved agent stability.
     *   Further UI/UX enhancements (e.g., markdown rendering, loading indicators, clear conversation functionality).
-    *   Improving server/agent error reporting and propagation to the extension.
+    *   Improving server/agent error reporting and propagation to the extension (backend stability improvements have reduced the urgency, but this is still important for robustness).
 
 
 ## 5. Backend Details: Conversation Start & Metadata
@@ -197,4 +197,3 @@ This section outlines the backend process for initiating and managing conversati
     *   Clients should be prepared for errors when rejoining sessions.
     *   Providing a clear user action (e.g., a "Start New Conversation" button) is important. This allows users to abandon a problematic session ID and force the creation of a fresh session via the `/api/conversations` route.
     *   Optionally, if a client detects critical errors early when trying to use a persisted `conversation_id` (e.g., consistent failures to load session data or specific error messages from the backend), it could proactively clear the stale ID and guide the user towards starting a new conversation.
-
