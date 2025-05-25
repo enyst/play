@@ -14,9 +14,7 @@ A: Immediate use/demo, BUT no placeholders, we really need to get this working.
 - The plan mentions reusing code/libraries from the web frontend. How much alignment do you want with the existing React-based web frontend?
 A: As much as possible, adapt the current web frontend to the vscode environment.
 - Should we consider using React in the webview, or keep it vanilla TypeScript?
-A: Whatever the frontend uses, we should use the same!
-- For markdown rendering, should we use the same libraries as the web frontend?
-A: Yes, we should use the same libraries as the web frontend.
+A: Whatever the frontend uses, we should use the same! Same for markdown.
 
 ### 3. **Configuration System Scope**
 - The plan calls for ALL config.template.toml settings to be configurable. That's quite extensive - is this a near-term priority or can it be phased?
@@ -25,16 +23,12 @@ A: MOST of the settings defined in the config.template.toml example file. (e.g.,
 A: OK, MOST of them, but the extension runs locally, directly on the user machine, so we don't need all sandbox options (they are about docker, etc.). We will use only CLIRuntime, so other runtimes or their options are not needed. There may be other options we don't need for similar reasons, but that's why we need to go through them all, and figure out what goes here.
 
 ### 4. **Testing Strategy**
-- You asked for unit testing suggestions. Are you thinking of testing the extension host logic, the webview logic, or both?
+- Are you thinking of testing the extension host logic, the webview logic, or both?
 A: Both.
 - What testing framework preferences do you have? (Jest, Mocha, VSCode's built-in testing, etc.)
 A: Hmm, the web frontend uses vitest. What is VSCode's built-in testing?
 - Should we set up integration tests with a mock OpenHands backend?
 A: Yes.
-
-### 5. **Feature Priorities**
-- Which Phase 3 items are most important: TypeScript migration, markdown rendering, expanded configuration, or testing?
-A: TypeScript migration. Let's have a real MVP architected as it should be, then we can play.
 
 ---
 
