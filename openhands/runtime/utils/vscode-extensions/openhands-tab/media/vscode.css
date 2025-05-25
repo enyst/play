@@ -17,7 +17,7 @@ body {
 
 ol,
 ul {
-	padding-left: var(--container-paddding);
+	padding-left: var(--container-padding);
 }
 
 body > *,
