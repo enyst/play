@@ -22,7 +22,7 @@ export async function run(): Promise<void> {
     }
 
     files.forEach((f: string) => {
-      console.log(`[Mocha Test Suite] Adding file: ${path.resolve(testsRoot, f)}`); // ADD THIS
+      console.log(`[Mocha Test Suite] Adding file: ${path.resolve(testsRoot, f)}`);
       mocha.addFile(path.resolve(testsRoot, f));
     });
 
