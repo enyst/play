@@ -90,3 +90,29 @@ openhands-tab/
 ├── .eslintrc                       # ESLint configuration (aligned with frontend)
 └── .prettierrc.json                # Prettier configuration (aligned with frontend)
 ```
+
+## Testing
+
+This extension uses two primary frameworks for testing:
+
+### Webview Tests (Vitest)
+
+-   **Framework:** [Vitest](https://vitest.dev/) (aligned with the OpenHands web frontend)
+-   **Purpose:** For testing React components and shared utility functions used in the webview.
+-   **Location:** Test files are typically named `*.spec.ts` or `*.spec.tsx` and are co-located with the source files (e.g., `src/webview/components/MyComponent.spec.tsx`, `src/shared/utils/myUtil.spec.ts`).
+-   **Setup:**
+    -   Vitest configuration: `vite.config.ts`
+    -   Test environment setup (e.g., JSDOM): `src/test/setup.ts`
+-   **Run:** `npm test`
+
+### Extension Host Tests (Mocha)
+
+-   **Framework:** [Mocha](https://mochajs.org/) (with `@vscode/test-electron` for running in a VS Code environment)
+-   **Purpose:** For testing the extension host logic, including interaction with VS Code APIs.
+-   **Location:**
+    -   Test runner script: `src/test/runTest.ts`
+    -   Test suite entry point: `src/test/suite/index.ts`
+    -   Test files: `src/test/suite/**/*.test.ts`
+-   **Run:**
+    -   Via npm script: `npm run test:extension`
+    -   Via VS Code Launch Configuration: Select "Extension Tests" from the "Run and Debug" panel.
