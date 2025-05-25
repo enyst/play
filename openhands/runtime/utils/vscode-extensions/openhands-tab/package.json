@@ -16,9 +16,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onView:openhandsView"
-  ],
   "main": "./out/extension/index.js",
   "contributes": {
     "viewsContainers": {
@@ -35,7 +32,8 @@
         {
           "id": "openhandsView",
           "name": "OpenHands",
-          "type": "webview"
+          "type": "webview",
+          "icon": "media/hands-monochrome.svg"
         }
       ]
     }
@@ -99,5 +97,12 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "socket.io-client": "^4.8.1"
-  }
+  },
+  "bundledDependencies": [
+    "react",
+    "react-dom",
+    "react-markdown",
+    "remark-gfm",
+    "clsx"
+  ]
 }

@@ -10,8 +10,17 @@ declare global {
   }
 }
 
+let vscodeApi: ReturnType<typeof window.acquireVsCodeApi> | undefined;
+
+function getVSCodeApi() {
+  if (!vscodeApi) {
+    vscodeApi = window.acquireVsCodeApi();
+  }
+  return vscodeApi;
+}
+
 export function useVSCodeAPI() {
-  const vscode = window.acquireVsCodeApi();
+  const vscode = getVSCodeApi();
 
   return {
     postMessage: (message: WebviewMessage) => {
