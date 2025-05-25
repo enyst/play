@@ -54,6 +54,17 @@ export class ConversationService {
               reject(new Error(`Failed to parse server response: ${error}`));
             }
           } else {
+            if (res.statusCode === 400) {
+              try {
+                const parsedBody = JSON.parse(responseBody);
+                if (parsedBody && parsedBody.msg_id === "CONFIGURATION$SETTINGS_NOT_FOUND") {
+                  reject(new Error("SETTINGS_NOT_FOUND_ERROR")); // Specific marker
+                  return;
+                }
+              } catch (e) {
+                // Not a JSON response or doesn't match our specific error, fall through to generic
+              }
+            }
             reject(
               new Error(`Server error (${res.statusCode}): ${responseBody}`),
             );
