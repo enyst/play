@@ -116,11 +116,18 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
       // Send the message
       this.socketService!.sendMessage(text);
     } catch (error) {
-      this.postMessageToWebview({
-        type: "error",
-        message:
-          error instanceof Error ? error.message : "Unknown error occurred",
-      });
+      if (error instanceof Error && error.message === "SETTINGS_NOT_FOUND_ERROR") {
+        this.postMessageToWebview({
+          type: "status", // Change type to "status"
+          message: "LLM settings not found. Please configure your LLM API key and model in the OpenHands settings.",
+        });
+      } else {
+        this.postMessageToWebview({
+          type: "error",
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+        });
+      }
     }
   }
 
@@ -142,6 +149,9 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
       this.conversationId = await this.conversationService.createConversation();
       console.log("Created conversation:", this.conversationId);
     } catch (error) {
+      if (error instanceof Error && error.message === "SETTINGS_NOT_FOUND_ERROR") {
+        throw error; // Re-throw the specific error marker
+      }
       throw new Error(
         `Failed to create conversation: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
