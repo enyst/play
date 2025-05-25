@@ -12,7 +12,7 @@ export async function run(): Promise<void> {
   });
 
   const testsRoot = path.resolve(__dirname, '.');
-  console.log(`[Mocha Test Suite] testsRoot: ${testsRoot}`); // ADD THIS
+  console.log(`[Mocha Test Suite] testsRoot: ${testsRoot}`);
 
   try {
     const files = await glob('**/**.test.js', { cwd: testsRoot });
