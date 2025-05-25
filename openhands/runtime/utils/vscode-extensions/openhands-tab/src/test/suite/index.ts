@@ -3,7 +3,7 @@ import Mocha = require('mocha');
 import { glob } from 'glob'; // Used to find test files
 
 export async function run(): Promise<void> {
-  console.log('[Mocha Test Suite] run() called'); // ADD THIS
+  console.log('[Mocha Test Suite] run() called');
   // Create the mocha test
   const mocha = new Mocha({
     ui: 'tdd', // The TDD UI is commonly used in Mocha
