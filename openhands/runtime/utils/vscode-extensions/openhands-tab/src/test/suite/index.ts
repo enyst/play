@@ -38,7 +38,7 @@ export async function run(): Promise<void> {
       });
     });
   } catch (err) {
-    console.error('[Mocha Test Suite] Error during test setup or execution:', err); // MODIFY THIS
+    console.error('[Mocha Test Suite] Error during test setup or execution:', err);
     throw err; // Re-throw to make the promise from run() reject
   }
 }
