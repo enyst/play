@@ -26,7 +26,7 @@ export async function run(): Promise<void> {
       mocha.addFile(path.resolve(testsRoot, f));
     });
 
-    console.log('[Mocha Test Suite] Starting Mocha run...'); // ADD THIS
+    console.log('[Mocha Test Suite] Starting Mocha run...');
     return new Promise<void>((resolve, reject) => {
       mocha.run((failures: number) => {
         console.log(`[Mocha Test Suite] Mocha run finished. Failures: ${failures}`); // ADD THIS
