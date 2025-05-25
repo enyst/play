@@ -25,8 +25,8 @@ A: OK, MOST of them, but the extension runs locally, directly on the user machin
 ### 4. **Testing Strategy**
 - Are you thinking of testing the extension host logic, the webview logic, or both?
 A: Both.
-- What testing framework preferences do you have? (Jest, Mocha, VSCode's built-in testing, etc.)
-A: Hmm, the web frontend uses vitest. What is VSCode's built-in testing?
+- What testing framework preferences do you have?
+A: Vitest for webview (React) tests (aligning with web frontend) and Mocha with @vscode/test-electron for extension host tests.
 - Should we set up integration tests with a mock OpenHands backend?
 A: Yes.
 
@@ -171,7 +171,18 @@ To accelerate development, ensure consistency, and leverage existing solutions, 
     *   Add functionality to clear conversation history or start a new conversation explicitly. **(Completed: "Start New Conversation" button implemented)**
 3.  **Configuration:** Make `_SERVER_URL` configurable via VS Code settings. **(Completed)**
 4.  **License:** Address `package.json` license warning. **(Completed: "UNLICENSED" added)**
-5.  **Thorough Testing:**
+5.  **Testing:**
+    *   **Testing Frameworks Setup (COMPLETED):**
+        *   **Webview (React) Tests:**
+            *   **Framework:** Vitest (see `vite.config.ts`, `src/test/setup.ts`).
+            *   **Location:** `src/webview/**/*.spec.tsx`, `src/shared/**/*.spec.ts`.
+            *   **Run:** `npm test`.
+            *   **Status:** Initial setup with sample tests for components (e.g., `StatusBar.spec.tsx`) and utilities (e.g., `src/shared/utils/index.spec.ts`) passing.
+        *   **Extension Host Tests:**
+            *   **Framework:** Mocha with `@vscode/test-electron`.
+            *   **Location:** Runner (`src/test/runTest.ts`), suite entry (`src/test/suite/index.ts`), tests (`src/test/suite/**/*.test.ts`).
+            *   **Run:** `npm run test:extension` or "Extension Tests" launch configuration.
+            *   **Status:** Initial setup with a sample extension test (`extension.test.ts`) passing.
     *   Test with a live OpenHands server across various scenarios (complex prompts, server errors, disconnections, long messages).
     *   Test edge cases for UI and communication.
     *   Improve server/agent error reporting: While backend stability is much improved, continue to refine how the extension handles and reports any server-side agent issues. The current timeout and basic error messages are a good start.
