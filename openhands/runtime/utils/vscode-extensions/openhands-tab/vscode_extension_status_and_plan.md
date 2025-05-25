@@ -4,28 +4,26 @@
 
 Based on analysis of the current PoC state, these questions will help guide the next development phase:
 
-### 1. **Immediate Goals & Priorities**
-- Are you looking to continue with the TypeScript migration as the plan suggests, or do you have other immediate priorities?
-A: TypeScript migration is immediate priority, and very important.
-- What's the timeline for this extension - immediate use/demo, or building toward longer-term production?
-A: Immediate use/demo, BUT no placeholders, we really need to get this working.
+### 1. **Immediate Goals**
+Adapt the current web frontend to the vscode environment. Use the same libraries and versions as much as possible. Verify periodically.
 
-### 2. **Frontend Architecture & Web Frontend Alignment**
-- The plan mentions reusing code/libraries from the web frontend. How much alignment do you want with the existing React-based web frontend?
-A: As much as possible, adapt the current web frontend to the vscode environment.
-- Should we consider using React in the webview, or keep it vanilla TypeScript?
-A: Whatever the frontend uses, we should use the same! Same for markdown.
+### 2. **Testing**
+In the web frontend, we use the following testing tools. We should verify and add them to the extension if missing.
+- Test Runner: Vitest
+- Rendering: React Testing Library
+- User Interactions: @testing-library/user-event
+- API Mocking: Mock Service Worker (MSW)
+- Code Coverage: Vitest with V8 coverage
 
 ### 3. **Configuration System Scope**
 - The plan calls for ALL config.template.toml settings to be configurable. That's quite extensive - is this a near-term priority or can it be phased?
 A: MOST of the settings defined in the config.template.toml example file. (e.g., model, max_tokens, etc.) Note that they are many, and they are per section, so we need to define a way to configure them.
 - Should we implement a subset first (e.g., model selection, basic agent settings) and expand later?
-A: OK, MOST of them, but the extension runs locally, directly on the user machine, so we don't need all sandbox options (they are about docker, etc.). We will use only CLIRuntime, so other runtimes or their options are not needed. There may be other options we don't need for similar reasons, but that's why we need to go through them all, and figure out what goes here.
+A: The extension runs locally, directly on the user machine, so we don't need all sandbox options (they are about docker, etc.). We will use only CLIRuntime, so other runtimes or their options are not needed. There may be other options we don't need for similar reasons, that's why we need to go through them all, and figure out what goes here.
 
 ### 4. **Testing Strategy**
-- Are you thinking of testing the extension host logic, the webview logic, or both?
-A: Both.
-- What testing framework preferences do you have?
+- We are testing both the extension host logic and the webview logic.
+- What testing frameworks?
 A: Vitest for webview (React) tests (aligning with web frontend) and Mocha with @vscode/test-electron for extension host tests.
 - Should we set up integration tests with a mock OpenHands backend?
 A: Yes.
@@ -36,47 +34,40 @@ A: Yes.
 
 OpenHands-Agent asked:
 1.  **Core Agent Interaction:**
-    *   You mentioned you're testing agent functionality. What are the absolute minimum agent actions/responses that *must* be reliably handled and displayed in the extension for an MVP? (e.g., simple text messages, executing a bash command and showing output, file reads/writes displayed as observations).
-    A: All those defined in backend and served by the openhands/server. We need to talk about this.
     *   How should complex agent outputs (e.g., long file contents, very verbose observations) be handled in the MVP?
     A: Truncate.
 
 2.  **Error Handling and Backend Dependency (MVP Focus):**
     *   How should the *extension* behave when the *server-side agent* has issues or becomes unresponsive (e.g., crashes or is unresponsive)?
     A: Show error message, and if the error message doesn't say it, then also tell the user to check the backend server and potentially restart it. The extension relies on a functional backend connection for all agent interactions.
-    *   Should there be an explicit "Reset/Start New Conversation" button in the UI for the MVP if things go wrong?
+    *   Should there be an explicit "Reset/Start New Conversation" button in the UI if things go wrong?
     A: Start New Conversation button, it should be above the chat input box. **(Implemented)**
 
 3.  **UI/UX Must-Haves for MVP:**
-    *   Is the current plain text display of agent messages sufficient for MVP, or is basic markdown rendering (e.g., for code blocks, bold/italics) a must-have?
-    A: Markdown rendering.
-    *   Are explicit loading indicators (e.g., "Agent is thinking...") critical for the MVP, or is the current implicit waiting acceptable?
-    A: Loading indicators same as current web frontend. **(Basic status messages like "Agent is processing..." implemented)**
+    *   Markdown rendering.
+    *   Loading indicators same as current web frontend. **(Basic status messages like "Agent is processing..." implemented)**
 
 4.  **Configuration & Setup (MVP):**
-    *   The server URL is configurable. Are there any other configuration aspects essential for an MVP?
-    A: Yes, ALL the settings defined in the config.template.toml example file. (e.g., model, max_tokens, etc.) Note that they are many, and they are per section, so we need to define a way to configure them.
+    *   MOST of the settings defined in the config.template.toml example file are necessary (e.g., model, max_tokens, etc.). Note that they are many, and they are per section, so we need to define a way to configure them.
 
 5.  **"Definition of Done" for MVP:**
     *   What key scenarios would you test to say "the MVP is working and meets its goals"?
-    A: End to end: the agent is working and succeeds a task. All errors handled by the current web frontend are handled by the extension too. We also need unit testing, please suggest a strategy.
+    A: End to end: the agent is working and succeeds a task. All errors handled by the current web frontend are handled by the extension too. Unit testing with good coverage.
 
-Your answers to these will help us prioritize the remaining items in Phase 3 and define a clear scope for what you consider a usable MVP. Let me know how the agent testing is going as well, as that heavily influences the next steps!
-A: Agent functionality has been successfully addressed, allowing for more reliable end-to-end testing and development of the extension.
 
 ## 1. Aim of the Extension
 
-The primary goal is to create a Visual Studio Code extension that integrates OpenHands directly into the editor. This extension will:
+The primary goal is to create a Visual Studio Code extension that integrates OpenHands directly into the editor. This extension:
 
-*   Add an "OpenHands" tab to the VS Code Activity Bar.
-*   Provide a user interface within this tab where users can enter prompts.
-*   Execute the `openhands-agent` with the given prompt.
-*   Display the full interaction (user prompts and agent responses/actions) in a chat-like view.
-*   Facilitate communication with the OpenHands backend server.
+*   Adds an "OpenHands" tab to the VS Code Activity Bar.
+*   Provides a user interface within this tab where users can enter prompts.
+*   Executes the `openhands-agent` with the given prompt.
+*   Displays the full interaction (user prompts and agent responses/actions) in a chat-like view.
+*   Facilitates communication with the OpenHands backend server.
 
 ### 1.1. Guiding Principle: Maximize Reuse from Web Frontend
 
-To accelerate development, ensure consistency, and leverage existing solutions, this extension will strive to:
+To accelerate development and ensure consistency, this extension will strive to:
 
 *   **Reuse Code and Libraries:** Wherever feasible, adapt or directly use code, components, and libraries from the existing OpenHands web frontend.
 *   **Align on Technology and Style:** This includes adopting TypeScript as the primary language for the extension's webview and potentially parts of the extension host logic. Code style, state management approaches (e.g., hooks if applicable in the webview context), and general architectural patterns should also align with the web frontend.
@@ -91,6 +82,7 @@ To accelerate development, ensure consistency, and leverage existing solutions, 
     *   The extension sends an HTTP POST request to the OpenHands server's `/api/conversations` endpoint (e.g., `http://localhost:3000/api/conversations`) with the initial prompt.
     *   The server returns a `conversation_id`.
     *   The extension stores this `conversation_id`.
+    *   OPEN QUESTION: Where does it store?
 4.  **Socket.IO Connection:**
     *   The extension establishes a Socket.IO connection to the OpenHands server (e.g., `ws://localhost:3000/`) using the obtained `conversation_id` and `latest_event_id=-1` as query parameters.
 5.  **Sending Subsequent Prompts:**
@@ -108,24 +100,6 @@ To accelerate development, ensure consistency, and leverage existing solutions, 
 
 **Phase 1: Basic Extension Setup & UI (Completed)**
 
-1.  **Project Initialization:**
-    *   Work within the `play` repository.
-    *   Target the `experimental-extension` branch for development.
-2.  **Core Extension Files (`play/openhands/runtime/utils/vscode-extensions/openhands-tab/`):**
-    *   `package.json`: Defines extension manifest (name, publisher, entry point, activation events, contributes view for "OpenHands" tab).
-    *   `extension.js`: Main extension logic, including webview provider.
-    *   Icon for the activity bar.
-    *   `.gitignore`.
-3.  **Basic UI (Webview):**
-    *   Implement a webview for the OpenHands tab.
-    *   Include an input area (textarea) for prompts and a button to send.
-    *   Include a display area for messages.
-    *   Basic CSS for chat-like appearance.
-4.  **Packaging & Testing:**
-    *   Package the extension into a `.vsix` file (`vsce package`).
-    *   Install and test the basic UI locally in VS Code.
-5.  **Initial Commits** (e.g., `4fbaf644`, `7d0a81ba`, `b6159956`).
-
 **Phase 2: Backend Communication - HTTP & Socket.IO (Completed)**
 
 1.  **Investigate OpenHands Server:**
@@ -135,12 +109,11 @@ To accelerate development, ensure consistency, and leverage existing solutions, 
     *   Confirmed Socket.IO message structure: `oh_user_action` (send) and `oh_event` (receive).
 2.  **Add Dependencies:**
     *   Added `"socket.io-client": "^4.7.5"` to `package.json` for `extension.js`.
-    *   Commit: `b767b27e`.
-3.  **Implement HTTP Conversation Initiation in `extension.js`:**
+3.  **Implement HTTP Conversation Initiation:**
     *   On first user prompt, make an HTTP POST to `_SERVER_URL + '/api/conversations'`.
     *   Store `_conversationId` from the response.
     *   Handle HTTP errors and notify webview.
-4.  **Implement Socket.IO Connection & Messaging in `extension.js`:**
+4.  **Implement Socket.IO Connection & Messaging:**
     *   Initialize `this._socket = io(this._SERVER_URL, { query: {...} });`.
     *   Set up `connect`, `oh_event`, `disconnect`, `error`, `connect_error` listeners.
     *   `oh_event` listener forwards data to webview via `postMessage`.
@@ -148,12 +121,11 @@ To accelerate development, ensure consistency, and leverage existing solutions, 
 5.  **Integrate with Webview:**
     *   Updated webview JavaScript to handle `agentResponse` data containing full `oh_event` payloads, errors, or status messages from `extension.js`.
     *   Display different types of information appropriately.
-6.  **Commit for Integration** (e.g., `8bd08f86`).
 
 **Phase 3: Core Improvements, Refinements & Testing**
 
 0.  **Foundation: TypeScript Rewrite & Code Restructuring (COMPLETED):**
-    *   **Goal:** Transition the existing `extension.js` (and its associated webview HTML/JS) to TypeScript to improve maintainability, enable better tooling, and align with modern web development practices (and potentially the main OpenHands frontend).
+    *   **Goal:** Transition the existing `extension.js` (and its associated webview HTML/JS) to TypeScript.
     *   **Tasks:**
         *   ✅ Convert `extension.js` (extension host part) to TypeScript (`.ts`).
         *   ✅ Convert the webview's inline JavaScript to separate TypeScript/React files (`.tsx`).
@@ -185,9 +157,8 @@ To accelerate development, ensure consistency, and leverage existing solutions, 
             *   **Status:** Initial setup with a sample extension test (`extension.test.ts`) passing.
     *   Test with a live OpenHands server across various scenarios (complex prompts, server errors, disconnections, long messages).
     *   Test edge cases for UI and communication.
-    *   Improve server/agent error reporting: While backend stability is much improved, continue to refine how the extension handles and reports any server-side agent issues. The current timeout and basic error messages are a good start.
-6.  **Documentation:** Create/update a `README.md` specifically for the extension within its directory.
-7.  **Pull Request & Review:** (If this were part of a larger collaborative effort on `enyst/play`) Create a pull request from `experimental-extension` to a main development branch.
+    *   Improve server/agent error reporting: continue to refine how the extension handles and reports any server-side agent issues. The current timeout and basic error messages are a good start.
+6.  **Documentation:** Create/update a `README.md` specifically for the extension within its directory. (COMPLETED)
 
 ## 4. Current Extension Architecture (Post-TypeScript Migration)
 
@@ -281,7 +252,7 @@ openhands-tab/
     *   Build system using TypeScript + Vite
     *   ESLint/Prettier configuration matching web frontend exactly
     *   Dependencies aligned with web frontend versions
-    *   Extension successfully packages to `.vsix` (1006.54KB)
+    *   Extension successfully packages to `.vsix`
 
 **CURRENT CAPABILITIES:**
 *   Server URL configurable via VS Code settings
@@ -297,108 +268,7 @@ openhands-tab/
 *   Implement comprehensive testing infrastructure (unit + integration)
 *   Enhanced markdown rendering and UI polish
 *   Configuration system for OpenHands settings (model, max_tokens, etc.)
-*   Documentation and user guides
 
 ## 5. Frontend Alignment Implementation Details
 
-### 5.1. ESLint & Prettier Configuration Alignment
-
-**Completed Actions:**
-1. **Copied Frontend ESLint Configuration:** Replicated the exact `.eslintrc` from `frontend/` to extension
-2. **Added Missing Dependencies:** Installed all ESLint plugins and configs used by frontend:
-   - `eslint-config-airbnb` ^19.0.4
-   - `eslint-config-airbnb-typescript` ^18.0.0
-   - `eslint-plugin-import` ^2.29.1
-   - `eslint-plugin-jsx-a11y` ^6.10.2
-   - `eslint-plugin-prettier` ^5.4.0
-   - `eslint-plugin-unused-imports` ^4.1.4
-   - `prettier` ^3.5.3
-
-3. **Version Compatibility:** Downgraded TypeScript ESLint versions to match frontend:
-   - `@typescript-eslint/eslint-plugin` ^7.18.0 (was ^8.18.1)
-   - `@typescript-eslint/parser` ^7.18.0 (was ^8.18.1)
-
-4. **Prettier Configuration:** Copied `.prettierrc.json` with `"trailingComma": "all"` setting
-
-5. **Updated Lint Scripts:** Aligned with frontend's approach:
-   ```json
-   "lint": "npm run typecheck && eslint src --ext .ts,.tsx && prettier --check src/**/*.{ts,tsx}",
-   "lint:fix": "eslint src --ext .ts,.tsx --fix && prettier --write src/**/*.{ts,tsx}"
-   ```
-
-### 5.2. Code Formatting Results
-
-**Auto-Fixed Issues:**
-- ✅ 201 formatting errors automatically resolved
-- ✅ Consistent quote style (double quotes)
-- ✅ Proper indentation and spacing
-- ✅ Trailing commas where appropriate
-
-**Remaining Code Quality Issues (Non-blocking):**
-- Console statements (acceptable for development)
-- Some TypeScript `any` types (can be refined later)
-- React component patterns (can be improved incrementally)
-- Minor accessibility issues (button types, labels)
-
-### 5.3. Build System Verification
-
-**Post-Alignment Status:**
-- ✅ TypeScript compilation: PASSING
-- ✅ Vite webview build: PASSING (1,948.22 kB)
-- ✅ Extension packaging: SUCCESSFUL (1006.54KB .vsix)
-- ✅ All dependencies installed without conflicts
-
 **Key Achievement:** Extension maintains full functionality while now using identical linting and formatting standards as the web frontend, ensuring code consistency across the OpenHands ecosystem.
-
-## 6. Backend Details: Conversation Start & Metadata
-
-This section outlines the backend process for initiating and managing conversations, with a focus on the creation and importance of `metadata.json`.
-
-### 6.1. New Conversation Creation
-
-1.  **Client Request:** A new conversation is typically initiated when a client (like the VS Code extension or web UI) sends an HTTP POST request to the `/api/conversations` endpoint. This request usually includes an initial user message and potentially other setup parameters (e.g., repository details).
-    *   Relevant file: `openhands/server/routes/manage_conversations.py` (handles the `/api/conversations` route).
-
-2.  **Metadata Initialization (`_create_new_conversation` function):**
-    *   Upon receiving the POST request, the backend generates a unique `conversation_id` (UUID).
-    *   It immediately creates an initial `ConversationMetadata` object. This object includes the `conversation_id`, user details, creation/update timestamps, a default title, and other relevant settings derived from the client request and server configuration.
-    *   **Crucially, this `ConversationMetadata` object is then serialized to JSON and saved as `metadata.json` within the session directory** (e.g., `cache/sessions/<conversation_id>/metadata.json`). This is handled by the `ConversationStore` (typically `FileConversationStore`).
-        *   Relevant files:
-            *   `openhands/server/routes/manage_conversations.py` (specifically `_create_new_conversation` function, which calls `save_metadata`).
-            *   `openhands/storage/conversation/file_conversation_store.py` (implements `save_metadata`).
-            *   `openhands/storage/data_models/conversation_metadata.py` (defines the `ConversationMetadata` structure).
-            *   `openhands/storage/locations.py` (defines how session paths and `metadata.json` filenames are constructed).
-
-3.  **Agent Loop Initialization:**
-    *   After successfully saving the initial `metadata.json`, the `_create_new_conversation` function calls `conversation_manager.maybe_start_agent_loop(...)`.
-    *   This, in turn, calls `StandaloneConversationManager._start_agent_loop(...)`.
-        *   Relevant file: `openhands/server/conversation_manager/standalone_conversation_manager.py`.
-
-4.  **Event Subscription & First Event:**
-    *   `_start_agent_loop` creates a `Session` instance and subscribes an internal callback (`_update_conversation_for_event`) to all events originating from this new agent session. This callback is responsible for updating `metadata.json` (e.g., `last_updated_at`, costs, title changes) whenever subsequent events occur.
-    *   `_start_agent_loop` then calls `Session.initialize_agent(...)`.
-        *   Relevant file: `openhands/server/session/session.py`.
-    *   The `Session.initialize_agent` method, very early in its execution, publishes an `AgentStateChangedObservation(..., AgentState.LOADING)` event.
-
-5.  **Metadata Update Callback:**
-    *   The `AgentState.LOADING` event (and any subsequent events) triggers the `_update_conversation_for_event` callback.
-    *   This callback first attempts to **read `metadata.json`** using `conversation_store.get_metadata()`. It then modifies the loaded metadata (e.g., updates timestamps) and saves it back using `conversation_store.save_metadata()`.
-
-### 6.2. Importance of `metadata.json`
-
-*   The `metadata.json` file is critical. It stores the state and details of a conversation.
-*   The backend expects this file to exist for any active or resumed conversation *before* most event processing occurs, particularly for callbacks that update timestamps or other metadata fields.
-*   If `metadata.json` is missing when a callback like `_update_conversation_for_event` attempts to read it, a `FileNotFoundError` will occur, typically halting further processing for that event and potentially destabilizing the session.
-
-### 6.3. Conversation Restoration/Rejoining (Client Perspective)
-
-*   When a client wishes to reconnect to an existing conversation, it typically uses a previously obtained `conversation_id` to establish a WebSocket connection directly (bypassing the `/api/conversations` POST request).
-*   The backend, upon receiving a WebSocket connection with a `conversation_id`, will attempt to load the corresponding agent session and its `metadata.json`.
-
-### 6.4. Recommendations for Client Robustness
-
-*   **Ensure New Sessions Use `/api/conversations`:** Clients should always use the HTTP POST to `/api/conversations` to initiate truly new conversations. This ensures the backend correctly creates the `conversation_id` and its initial `metadata.json`.
-*   **Handle Stale/Invalid `conversation_id`s:** A client might persist a `conversation_id` locally. If this ID becomes stale (e.g., its `metadata.json` was never created due to an interruption, or was deleted on the backend), attempts to rejoin this session will likely lead to errors (like the `FileNotFoundError` if an early event callback tries to access it).
-    *   Clients should be prepared for errors when rejoining sessions.
-    *   Providing a clear user action (e.g., a "Start New Conversation" button) is important. This allows users to abandon a problematic session ID and force the creation of a fresh session via the `/api/conversations` route.
-    *   Optionally, if a client detects critical errors early when trying to use a persisted `conversation_id` (e.g., consistent failures to load session data or specific error messages from the backend), it could proactively clear the stale ID and guide the user towards starting a new conversation.
