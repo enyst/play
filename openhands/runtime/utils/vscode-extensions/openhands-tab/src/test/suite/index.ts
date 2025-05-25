@@ -18,7 +18,7 @@ export async function run(): Promise<void> {
     const files = await glob('**/**.test.js', { cwd: testsRoot });
     console.log(`[Mocha Test Suite] Found test files: ${files.join(', ')}`);
     if (files.length === 0) {
-      console.warn('[Mocha Test Suite] No test files found matching **/**.test.js'); // ADD THIS
+      console.warn('[Mocha Test Suite] No test files found matching **/**.test.js');
     }
 
     files.forEach((f: string) => {
