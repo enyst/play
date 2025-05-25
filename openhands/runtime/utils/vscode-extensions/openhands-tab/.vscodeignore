@@ -1,2 +1,42 @@
+# Include all files by default
+**
+
+# Exclude specific files and directories
+!.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+!src/**
+!out/**
+!dist/**
+!media/**
+!node_modules/**
+!package.json
+!tsconfig.json
+!tsconfig.extension.json
+!vite.config.ts
+
+# Exclude development files
+.vscode-test/
+coverage/
+test-results.xml
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tsbuildinfo
 *.vsix
 vscode_extension_status_and_plan.md
