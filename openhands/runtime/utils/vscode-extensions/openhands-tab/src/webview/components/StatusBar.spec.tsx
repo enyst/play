@@ -60,11 +60,69 @@ describe('StatusBar Component', () => {
     expect(screen.queryByText('⚠️')).toBeNull();
   });
 
-  it('should call onStartNewConversation when "New Chat" button is clicked', () => {
+  it('should call onStartNewConversation when the new conversation button is clicked, have correct title, and contain no text', () => {
     render(<StatusBar {...defaultProps} />);
-    fireEvent.click(screen.getByRole('button', { name: /new chat/i }));
+    const newConversationButton = screen.getByTitle('New Conversation'); // Find by title
+    expect(newConversationButton).toBeTruthy();
+    // Check that the button's direct text content is empty (should only contain SVG)
+    // Note: SVGs might have <title> elements that contribute to accessible name but not textContent of the button itself.
+    // If the SVG had a <title> it might interfere. Let's assume it doesn't for now or that textContent is what we want.
+    expect(newConversationButton.textContent).toBe('');
+
+    fireEvent.click(newConversationButton);
     expect(mockOnStartNewConversation).toHaveBeenCalledTimes(1);
   });
+
+  it('should NOT display error message when an error exists but isConnected is false', () => {
+    const errorMessage = 'Detailed Fetch Error';
+    render(
+      <StatusBar
+        {...defaultProps}
+        isConnected={false}
+        serverHealthy={true} // serverHealthy could be true or null, disconnected takes precedence
+        error={errorMessage}
+      />,
+    );
+    expect(screen.queryByText(errorMessage)).toBeNull();
+    expect(screen.queryByText('⚠️')).toBeNull();
+    // Should still show "Disconnected"
+    expect(screen.getByText('Disconnected')).toBeTruthy();
+  });
+
+  it('should NOT display error message when an error exists and isConnected is true but serverHealthy is false', () => {
+    const errorMessage = 'Detailed Fetch Error';
+    render(
+      <StatusBar
+        {...defaultProps}
+        isConnected={true}
+        serverHealthy={false}
+        error={errorMessage}
+      />,
+    );
+    expect(screen.queryByText(errorMessage)).toBeNull();
+    expect(screen.queryByText('⚠️')).toBeNull();
+    // Should still show "Connected" and "Server Down"
+    expect(screen.getByText('Connected')).toBeTruthy();
+    expect(screen.getByText('Server Down')).toBeTruthy();
+  });
+
+  it('should display error message when an error exists, isConnected is true, and serverHealthy is null', () => {
+    const errorMessage = 'Detailed Fetch Error';
+    render(
+      <StatusBar
+        {...defaultProps}
+        isConnected={true}
+        serverHealthy={null} // e.g. during initial check or if a check fails to determine status
+        error={errorMessage}
+      />,
+    );
+    expect(screen.getByText(errorMessage)).toBeTruthy();
+    expect(screen.getByText('⚠️')).toBeTruthy();
+    // Should still show "Connected" and "Checking..."
+    expect(screen.getByText('Connected')).toBeTruthy();
+    expect(screen.getByText('Checking...')).toBeTruthy();
+  });
+
 
   it('should call onCheckHealth when "Health" button is clicked', () => {
     render(<StatusBar {...defaultProps} />);
