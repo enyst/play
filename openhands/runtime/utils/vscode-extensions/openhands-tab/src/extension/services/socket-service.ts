@@ -95,6 +95,7 @@ export class SocketService {
     });
 
     this.socket.on("oh_event", (data: AgentEvent) => {
+      console.log("Received oh_event:", JSON.stringify(data, null, 2));
       this.clearResponseTimer();
       this.config.onEvent(data);
     });
