@@ -34,30 +34,32 @@ export function ChatInterface({
   }, [messages]);
 
   return (
-    <div className="chat-interface">
-      <div className="messages-container">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto px-3 pt-3 scrollbar">
         <Messages messages={messages} />
         <div ref={messagesEndRef} />
       </div>
 
-      <ChatInput
-        onSendMessage={onSendMessage}
-        disabled={isLoading}
-        placeholder={
-          isLoading
-            ? "Agent is processing..."
-            : isConnected
-              ? "Type your message..."
-              : "Start a conversation to begin..."
-        }
-      />
+      <div className="flex flex-col gap-2 px-3 pb-3">
+        <ChatInput
+          onSendMessage={onSendMessage}
+          disabled={isLoading}
+          placeholder={
+            isLoading
+              ? "Agent is processing..."
+              : isConnected
+                ? "Type your message..."
+                : "Start a conversation to begin..."
+          }
+        />
 
-      <StatusBar
-        isConnected={isConnected}
-        error={error}
-        serverHealthy={serverHealthy}
-        onStartNewConversation={onStartNewConversation}
-      />
+        <StatusBar
+          isConnected={isConnected}
+          error={error}
+          serverHealthy={serverHealthy}
+          onStartNewConversation={onStartNewConversation}
+        />
+      </div>
     </div>
   );
 }
