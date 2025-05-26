@@ -12,7 +12,6 @@ interface ChatInterfaceProps {
   serverHealthy: boolean | null;
   onSendMessage: (message: string) => void;
   onStartNewConversation: () => void;
-  onCheckHealth: () => void;
 }
 
 export function ChatInterface({
@@ -23,7 +22,6 @@ export function ChatInterface({
   serverHealthy,
   onSendMessage,
   onStartNewConversation,
-  onCheckHealth,
 }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +57,6 @@ export function ChatInterface({
         error={error}
         serverHealthy={serverHealthy}
         onStartNewConversation={onStartNewConversation}
-        onCheckHealth={onCheckHealth}
       />
     </div>
   );
