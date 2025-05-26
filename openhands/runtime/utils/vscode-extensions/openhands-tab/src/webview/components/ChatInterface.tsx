@@ -37,14 +37,6 @@ export function ChatInterface({
 
   return (
     <div className="chat-interface">
-      <StatusBar
-        isConnected={isConnected}
-        error={error}
-        serverHealthy={serverHealthy}
-        onStartNewConversation={onStartNewConversation}
-        onCheckHealth={onCheckHealth}
-      />
-
       <div className="messages-container">
         <Messages messages={messages} />
         <div ref={messagesEndRef} />
@@ -60,6 +52,14 @@ export function ChatInterface({
               ? "Type your message..."
               : "Start a conversation to begin..."
         }
+      />
+
+      <StatusBar
+        isConnected={isConnected}
+        error={error}
+        serverHealthy={serverHealthy}
+        onStartNewConversation={onStartNewConversation}
+        onCheckHealth={onCheckHealth}
       />
     </div>
   );

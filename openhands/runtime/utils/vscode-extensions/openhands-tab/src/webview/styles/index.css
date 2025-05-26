@@ -40,7 +40,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--vscode-panel-border);
+  border-top: 1px solid var(--vscode-panel-border);
   background-color: var(--vscode-panel-background);
   min-height: 40px;
 }

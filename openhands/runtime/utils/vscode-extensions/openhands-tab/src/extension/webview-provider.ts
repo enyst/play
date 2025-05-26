@@ -18,6 +18,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
   private conversationId: string | null = null;
 
   private serverUrl: string;
+  private healthCheckInterval?: NodeJS.Timeout;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -62,8 +63,59 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
       this.context.subscriptions,
     );
 
+
     // Perform initial health check
     this.performHealthCheck();
+
+    // Setup periodic health check
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+    this.healthCheckInterval = setInterval(() => {
+      if (this.view && this.view.visible) {
+        console.log("[OpenHands Extension] Performing periodic health check (view visible).");
+        this.performHealthCheck();
+      } else {
+        console.log("[OpenHands Extension] Skipping periodic health check (view not visible or disposed).");
+      }
+    }, 60000); // 60 seconds
+
+    // Add disposal logic for the interval and other resources
+    // This will be pushed to context.subscriptions to be managed by VS Code
+    this.context.subscriptions.push(
+      new vscode.Disposable(() => {
+        if (this.healthCheckInterval) {
+          clearInterval(this.healthCheckInterval);
+          this.healthCheckInterval = undefined;
+          console.log("[OpenHands Extension] Cleared health check interval on extension deactivation/dispose.");
+        }
+        if (this.socketService) {
+          this.socketService.disconnect();
+          this.socketService = undefined;
+          console.log("[OpenHands Extension] Disconnected socket service on extension deactivation/dispose.");
+        }
+      })
+    );
+
+    // Handle webview-specific disposal (e.g., when the view itself is closed by the user)
+    webviewView.onDidDispose(
+      () => {
+        console.log("[OpenHands Extension] Webview panel for OpenHandsViewProvider disposed.");
+        if (this.healthCheckInterval) {
+          clearInterval(this.healthCheckInterval);
+          this.healthCheckInterval = undefined;
+          console.log("[OpenHands Extension] Cleared health check interval due to webview disposal.");
+        }
+        if (this.socketService) {
+          this.socketService.disconnect();
+          this.socketService = undefined;
+          console.log("[OpenHands Extension] Disconnected socket service due to webview disposal.");
+        }
+        this.view = undefined; // Clear the view reference
+      },
+      null, // Using null for `thisArgs`
+      this.context.subscriptions // Add this disposable to the extension's subscriptions
+    );
   }
 
   private async handleWebviewMessage(message: WebviewMessage) {
