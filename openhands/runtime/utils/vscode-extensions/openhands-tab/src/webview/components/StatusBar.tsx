@@ -14,34 +14,26 @@ export function StatusBar({
   serverHealthy,
   onStartNewConversation,
 }: StatusBarProps) {
+  const getStatusDotColor = (status: boolean | null) => {
+    if (status === true) return "bg-[var(--vscode-charts-green)]";
+    if (status === false) return "bg-[var(--vscode-charts-red)]";
+    return "bg-[var(--vscode-charts-yellow)]";
+  };
+
   return (
-    <div className="status-bar">
-      <div className="status-line-1" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-        <div className="status-info" style={{ display: "flex", alignItems: "center" }}>
+    <div className="border-t border-[var(--vscode-panel-border)] bg-[var(--vscode-panel-background)] p-2 min-h-[40px]">
+      <div className="flex justify-between items-center w-full">
+        <div className="flex items-center gap-3">
           {/* Connection Status */}
-          <div
-            className={cn(
-              "status-indicator",
-              isConnected ? "status-connected" : "status-disconnected",
-            )}
-          >
-            <div className="status-dot" />
-            <span className="status-text">
-              {isConnected ? "Connected" : "Disconnected"}
-            </span>
+          <div className="flex items-center gap-1.5 text-xs">
+            <div className={cn("w-2 h-2 rounded-full", getStatusDotColor(isConnected))} />
+            <span>{isConnected ? "Connected" : "Disconnected"}</span>
           </div>
 
           {/* Server Health Status */}
-          <div
-            className={cn(
-              "status-indicator",
-              serverHealthy === true ? "status-connected" :
-              serverHealthy === false ? "status-disconnected" : "status-unknown"
-            )}
-            style={{ marginLeft: "10px" }} // Spacing between indicators
-          >
-            <div className="status-dot" />
-            <span className="status-text">
+          <div className="flex items-center gap-1.5 text-xs">
+            <div className={cn("w-2 h-2 rounded-full", getStatusDotColor(serverHealthy))} />
+            <span>
               {serverHealthy === null ? "Checking..." :
                serverHealthy ? "Server OK" : "Server Down"}
             </span>
@@ -49,35 +41,29 @@ export function StatusBar({
         </div>
 
         {/* Action Buttons */}
-        <div className="status-actions">
+        <div className="flex gap-2">
           <button
             onClick={onStartNewConversation}
-            className="new-conversation-button"
+            className={cn(
+              "flex items-center gap-1 px-2 py-1 text-xs rounded",
+              "bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]",
+              "hover:bg-[var(--vscode-button-hoverBackground)] transition-colors"
+            )}
             title="New Conversation"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
             </svg>
+            New
           </button>
         </div>
       </div>
 
-      {/* Error Line */}
-      {error && (
-        <div 
-          className="status-line-2 status-error-line" 
-          style={{
-            marginTop: "4px", 
-            paddingTop: "4px", 
-            borderTop: "1px solid var(--vscode-editorGroup-border)", 
-            color: "var(--vscode-errorForeground)",
-            fontSize: "0.9em", // Slightly smaller text for the error
-            whiteSpace: "normal", // Allow error text to wrap
-            wordBreak: "break-word" // Break long words if necessary
-          }}
-        >
-          <span className="error-icon" style={{ marginRight: "4px" }}>⚠️</span>
-          <span className="error-text">{error}</span>
+      {/* Error Line - only show when connected and server is healthy or checking */}
+      {error && isConnected && serverHealthy !== false && (
+        <div className="mt-1 pt-1 border-t border-[var(--vscode-editorGroup-border)] text-[var(--vscode-errorForeground)] text-xs break-words">
+          <span className="mr-1">⚠️</span>
+          <span>{error}</span>
         </div>
       )}
     </div>
