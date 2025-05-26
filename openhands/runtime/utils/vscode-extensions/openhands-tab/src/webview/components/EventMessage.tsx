@@ -174,12 +174,18 @@ export function EventMessage({ event }: EventMessageProps) {
 
   // Fallback for unknown event types
   const eventType = event.action || event.observation || "unknown";
-  const content = event.content || event.message || JSON.stringify(event);
+  const basicContent = event.content || event.message || "";
+  const jsonDebugInfo = JSON.stringify(event, null, 2);
+  
+  const debugDetails = basicContent 
+    ? `${basicContent}\n\n**Debug Info (Full Event):**\n\`\`\`json\n${jsonDebugInfo}\n\`\`\``
+    : `**Debug Info (Full Event):**\n\`\`\`json\n${jsonDebugInfo}\n\`\`\``;
   
   return (
     <GenericEventMessage
-      title={`🔧 ${eventType.toUpperCase()}`}
-      details={content}
+      title={`🔧 UNKNOWN: ${eventType.toUpperCase()}`}
+      details={debugDetails}
+      success="error"
     />
   );
 }
