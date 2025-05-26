@@ -61,11 +61,14 @@ class AppConfig(BaseModel):
     extended: ExtendedConfig = Field(default_factory=lambda: ExtendedConfig({}))
     runtime: str = Field(default='docker')
     file_store: str = Field(default='local')
-    file_store_path: str = Field(default='/tmp/openhands_file_store')
+    file_store_path: str = Field(default='~/.openhands')
     save_trajectory_path: str | None = Field(default=None)
     save_screenshots_in_trajectory: bool = Field(default=False)
     replay_trajectory_path: str | None = Field(default=None)
-    search_api_key: SecretStr | None = Field(default=None, description="API key for Tavily search engine (https://tavily.com/). Required for search functionality.")
+    search_api_key: SecretStr | None = Field(
+        default=None,
+        description='API key for Tavily search engine (https://tavily.com/). Required for search functionality.',
+    )
 
     # Deprecated parameters - will be removed in a future version
     workspace_base: str | None = Field(default=None, deprecated=True)
@@ -73,7 +76,7 @@ class AppConfig(BaseModel):
     workspace_mount_path_in_sandbox: str = Field(default='/workspace', deprecated=True)
     workspace_mount_rewrite: str | None = Field(default=None, deprecated=True)
     # End of deprecated parameters
-    
+
     cache_dir: str = Field(default='/tmp/cache')
     run_as_openhands: bool = Field(default=True)
     max_iterations: int = Field(default=OH_MAX_ITERATIONS)
