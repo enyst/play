@@ -45,7 +45,7 @@ export function StatusBar({
           </span>
         </div>
 
-        {error && (
+        {error && (isConnected || serverHealthy === true || serverHealthy === null) && (
           <div className="status-error">
             <span className="error-icon">⚠️</span>
             <span className="error-text">{error}</span>
