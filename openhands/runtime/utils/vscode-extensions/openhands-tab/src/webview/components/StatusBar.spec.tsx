@@ -59,14 +59,12 @@ describe('StatusBar Component', () => {
     expect(screen.queryByText('⚠️')).toBeNull();
   });
 
-  it('should call onStartNewConversation when the new conversation button is clicked, have correct title, and contain no text', () => {
+  it('should call onStartNewConversation when the new conversation button is clicked, have correct title, and contain "New" text', () => {
     render(<StatusBar {...defaultProps} />);
     const newConversationButton = screen.getByTitle('New Conversation'); // Find by title
     expect(newConversationButton).toBeTruthy();
-    // Check that the button's direct text content is empty (should only contain SVG)
-    // Note: SVGs might have <title> elements that contribute to accessible name but not textContent of the button itself.
-    // If the SVG had a <title> it might interfere. Let's assume it doesn't for now or that textContent is what we want.
-    expect(newConversationButton.textContent).toBe('');
+    // The button should contain "New" text along with the SVG icon
+    expect(newConversationButton.textContent).toBe('New');
 
     fireEvent.click(newConversationButton);
     expect(mockOnStartNewConversation).toHaveBeenCalledTimes(1);
