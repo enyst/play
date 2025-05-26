@@ -44,8 +44,8 @@ export function ChatInput({
   };
 
   return (
-    <div className="chat-input-container">
-      <div className="chat-input-wrapper">
+    <div className="border-t border-[var(--vscode-panel-border)] bg-[var(--vscode-panel-background)] p-3">
+      <div className="flex gap-2 items-end">
         <textarea
           ref={textareaRef}
           value={message}
@@ -53,15 +53,25 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className={cn("chat-input", disabled && "chat-input-disabled")}
+          className={cn(
+            "flex-1 min-h-[36px] max-h-[120px] p-2 rounded",
+            "border border-[var(--vscode-input-border)]",
+            "bg-[var(--vscode-input-background)] text-[var(--vscode-input-foreground)]",
+            "placeholder:text-[var(--vscode-input-placeholderForeground)]",
+            "focus:border-[var(--vscode-focusBorder)] focus:outline-none",
+            "resize-none transition-colors",
+            disabled && "opacity-60 cursor-not-allowed"
+          )}
           rows={1}
         />
         <button
           onClick={handleSubmit}
           disabled={disabled || !message.trim()}
           className={cn(
-            "send-button",
-            (disabled || !message.trim()) && "send-button-disabled",
+            "px-3 py-2 rounded flex items-center justify-center min-w-[36px] h-[36px]",
+            "bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]",
+            "hover:bg-[var(--vscode-button-hoverBackground)] transition-colors",
+            (disabled || !message.trim()) && "opacity-50 cursor-not-allowed hover:bg-[var(--vscode-button-background)]"
           )}
           title="Send message (Enter)"
         >
@@ -70,7 +80,7 @@ export function ChatInput({
           </svg>
         </button>
       </div>
-      <div className="chat-input-hint">
+      <div className="text-xs text-[var(--vscode-descriptionForeground)] mt-1 text-center">
         Press Enter to send, Shift+Enter for new line
       </div>
     </div>

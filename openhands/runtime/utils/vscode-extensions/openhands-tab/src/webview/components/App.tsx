@@ -61,18 +61,27 @@ export function App() {
   }, []);
 
   const handleAgentResponse = (event: AgentEvent) => {
+    console.log("[Webview] Processing agent event:", event);
+    
+    // For now, we'll create a message that contains the raw event data
+    // The EventMessage component will handle the proper rendering
+    const eventMessage: Message = {
+      id: generateId(),
+      content: JSON.stringify(event), // Store the raw event for EventMessage to process
+      sender: "assistant",
+      timestamp: Date.now(),
+      type: "action", // Mark as action type so we can handle it differently
+    };
+    
+    // Add the event data to the message for EventMessage component
+    (eventMessage as any).eventData = event;
+    
+    addMessage(eventMessage);
+    
+    // Still handle errors at the app level for the error state
     if (event.error) {
       const errorMessage = event.content || event.message || "Agent error";
       setError(errorMessage);
-    } else if (event.content || event.message) {
-      const content = event.content || event.message || "";
-      addMessage({
-        id: generateId(),
-        content,
-        sender: "assistant",
-        timestamp: Date.now(),
-        type: "message",
-      });
     }
   };
 

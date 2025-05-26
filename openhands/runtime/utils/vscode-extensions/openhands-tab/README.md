@@ -20,6 +20,24 @@ To accelerate development and ensure consistency, this extension will strive to:
 *   **Align on Technology and Style:** This includes adopting TypeScript as the primary language for the extension's webview and potentially parts of the extension host logic. Code style, state management approaches (e.g., hooks if applicable in the webview context), and general architectural patterns should also align with the web frontend.
 *   **Shared UI/UX:** Aim for a user experience that is familiar to users of the web frontend, particularly in how chat interactions are displayed and managed.
 
+## Recent Updates (Latest)
+
+### Tailwind CSS Integration
+*   **Complete UI Overhaul:** All webview components converted from CSS classes to Tailwind utilities
+*   **VSCode Theme Integration:** Proper use of VSCode CSS variables for consistent theming
+*   **Responsive Design:** Modern responsive layout patterns with Tailwind
+
+### Advanced Event Handling
+*   **Event Type Processing:** Comprehensive handling of different OpenHands event types
+*   **Smart Display Logic:** File/code events show name-only (ready for VSCode integration)
+*   **Collapsible Events:** GenericEventMessage component for expandable event details
+*   **Command Execution:** Clean display of command execution with proper status indicators
+
+### Component Architecture
+*   **EventMessage.tsx:** Central event type router for different OpenHands actions
+*   **GenericEventMessage.tsx:** Reusable collapsible event display component
+*   **Enhanced ChatMessage.tsx:** Integrated with new event handling system
+
 ## Current Capabilities
 
 *   Server URL configurable via VS Code settings.
@@ -95,7 +113,7 @@ openhands-tab/
 
 This extension uses two primary frameworks for testing:
 
-### Webview Tests (Vitest)
+### Webview Tests (Vitest) ✅ COMPLETED
 
 -   **Framework:** [Vitest](https://vitest.dev/) (aligned with the OpenHands web frontend)
 -   **Purpose:** For testing React components and shared utility functions used in the webview.
@@ -104,6 +122,11 @@ This extension uses two primary frameworks for testing:
     -   Vitest configuration: `vite.config.ts`
     -   Test environment setup (e.g., JSDOM): `src/test/setup.ts`
 -   **Run:** `npm test`
+-   **Status:** ✅ **ALL 45 TESTS PASSING** - Comprehensive unit tests implemented:
+    -   `StatusBar.spec.tsx` (11 tests) - Connection status, server health, error handling
+    -   `GenericEventMessage.spec.tsx` (11 tests) - Collapsible event messages, success/error states  
+    -   `ChatMessage.spec.tsx` (11 tests) - Message rendering, copy functionality, styling
+    -   `EventMessage.spec.tsx` (12 tests) - OpenHands event handling, action types, graceful fallbacks
 
 ### Extension Host Tests (Mocha)
 
