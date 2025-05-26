@@ -7,6 +7,44 @@ Based on analysis of the current PoC state, these questions will help guide the 
 ### 1. **Immediate Goals**
 Adapt the current web frontend to the vscode environment. Use the same libraries and versions as much as possible. Verify periodically.
 
+
+### 1.1. UI/UX Adaptation Strategy (Updated May 26, 2025)
+
+Regarding the adaptation of the web frontend's UI/UX to the VS Code environment:
+*   **Prioritize Native Look and Feel:** For UI components within the webview, the primary goal is to achieve a look and feel that is native to VS Code. This enhances user experience and integration within the editor.
+*   **Challenge with UI Toolkit:** The official `@vscode/webview-ui-toolkit` was identified as deprecated as of January 2025 (GitHub issue #561 in `microsoft/vscode-webview-ui-toolkit`). Therefore, it will not be used.
+*   **UI Approach for Chat Content and Shell:**
+    *   **Chat Message Stream (Webview):** To achieve rich display (Markdown, code highlighting, distinct event types) and maximize reuse from the web frontend, we will adopt **Tailwind CSS** and **`react-markdown`** (with its associated ecosystem like `remark-gfm` and syntax highlighters). Components like `ChatMessage.tsx` and `GenericEventMessage.tsx` from the web frontend will be adapted. This directly addresses the need for styled and differentiated event rendering.
+    *   **Extension Shell UI (Buttons, Inputs outside message stream):** For general UI elements like the main input bar, status indicators, and buttons not part of the chat message stream, we will also **leverage Tailwind CSS**. This ensures a consistent styling approach across the entire webview and maximizes the utility of having Tailwind integrated.
+*   **No Embedded Editor:** File display and diffing will continue to rely on VS Code's native editor capabilities, not on an embedded editor component like Monaco within the webview.
+
+
+### 1.2. Leveraging VS Code Native Capabilities (May 2025)
+
+A core principle for the VS Code extension is to deeply integrate with the editor's native functionalities for a superior user experience, rather than merely replicating web frontend behavior within the webview.
+
+*   **File Operations (Viewing and Editing):**
+    *   **Viewing Files (`FileReadAction` / `ReadObservation`):** Instead of displaying file content directly in the webview chat (as the web frontend might), the extension should primarily indicate *that* a file was read (e.g., "Agent read `path/to/file.py`"). The webview message could make the file path a clickable link.
+    *   **Click-to-Open:** Clicking this link in the webview should command VS Code to open the specified file in a new editor tab or focus it if already open. This allows users to view the file with full VS Code features (syntax highlighting, navigation, etc.).
+    *   **Editing Files (`FileEditAction` / `EditObservation`):** When the agent performs an edit, the extension should:
+        *   Notify the user in the webview (e.g., "Agent edited `path/to/file.py`").
+        *   Apply the changes directly to the file on disk.
+        *   Open or focus the modified file in VS Code, showing a diff view. Users can then leverage VS Code's built-in diff viewers, undo/redo, and source control.
+    *   **Rationale:** This approach is more powerful and familiar for VS Code users. It avoids duplicating editor functionality in the webview and keeps the chat log cleaner.
+
+*   **Command Execution (`CommandAction` / `CommandObservation`):**
+    *   **Integrated Terminal:** Instead of just displaying command text and output in the webview, the extension should strive to execute commands in a dedicated VS Code integrated terminal associated with the OpenHands agent.
+    *   **Execution Flow:**
+        1.  Agent decides to run a command (`CommandAction`).
+        2.  Extension receives this, potentially shows "Agent wants to run: `command`" in the webview.
+        3.  If user confirmation is required and given, or if auto-confirmed:
+            *   The extension ensures an integrated terminal (e.g., named "OpenHands Agent") is open.
+            *   The command is sent to and executed in this terminal.
+            *   STDOUT/STDERR from the terminal are captured as the `CommandObservation` and also displayed in the webview (potentially truncated, with an option to see full output in the terminal).
+    *   **Rationale:** This provides a true interactive terminal experience, allows users to see commands run in a familiar environment, and handles complex terminal I/O or long-running processes better than a static text display in the webview.
+
+*   **General Principle:** For any agent action/observation that has a strong parallel to a VS Code feature (file system, terminal, source control, search), the extension should prefer orchestrating the VS Code feature rather than reimplementing a less capable version in the webview.
+
 ### 2. **Testing**
 In the web frontend, we use the following testing tools. We should verify and add them to the extension if missing.
 - Test Runner: Vitest
