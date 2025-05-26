@@ -4,14 +4,13 @@ import { StatusBar } from './StatusBar';
 
 describe('StatusBar Component', () => {
   const mockOnStartNewConversation = vi.fn();
-  const mockOnCheckHealth = vi.fn();
+
 
   const defaultProps = {
     isConnected: true,
     error: null,
     serverHealthy: true,
     onStartNewConversation: mockOnStartNewConversation,
-    onCheckHealth: mockOnCheckHealth,
   };
 
   beforeEach(() => {
@@ -124,9 +123,5 @@ describe('StatusBar Component', () => {
   });
 
 
-  it('should call onCheckHealth when "Health" button is clicked', () => {
-    render(<StatusBar {...defaultProps} />);
-    fireEvent.click(screen.getByRole('button', { name: /health/i }));
-    expect(mockOnCheckHealth).toHaveBeenCalledTimes(1);
-  });
+
 });
