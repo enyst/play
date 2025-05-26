@@ -43,9 +43,6 @@ export function App() {
         case "error":
           setError(message.message || "Unknown error");
           setIsLoading(false);
-          if (message.message) {
-            addErrorMessage(message.message);
-          }
           break;
         case "clearChat":
           setMessages([]);
@@ -64,14 +61,17 @@ export function App() {
   }, []);
 
   const handleAgentResponse = (event: AgentEvent) => {
-    if (event.content || event.message) {
+    if (event.error) {
+      const errorMessage = event.content || event.message || "Agent error";
+      setError(errorMessage);
+    } else if (event.content || event.message) {
       const content = event.content || event.message || "";
       addMessage({
         id: generateId(),
         content,
         sender: "assistant",
         timestamp: Date.now(),
-        type: event.error ? "error" : "message",
+        type: "message",
       });
     }
   };
@@ -140,13 +140,6 @@ export function App() {
     });
   };
 
-  const handleCheckHealth = () => {
-    console.log("[Webview] Health check button clicked, sending message to extension");
-    vscode.postMessage({
-      type: "checkHealth",
-    });
-  };
-
   return (
     <ChatInterface
       messages={messages}
@@ -156,7 +149,6 @@ export function App() {
       serverHealthy={serverHealthy}
       onSendMessage={handleSendMessage}
       onStartNewConversation={handleStartNewConversation}
-      onCheckHealth={handleCheckHealth}
     />
   );
 }
