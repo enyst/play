@@ -39,6 +39,7 @@ export class ConversationService {
         });
 
         res.on("end", () => {
+          console.log("Full HTTP response body:", responseBody);
           if (res.statusCode === 200) {
             try {
               const data: ConversationResponse = JSON.parse(responseBody);
