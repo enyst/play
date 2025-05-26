@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { EventMessage } from './EventMessage';
 
 describe('EventMessage', () => {
@@ -159,7 +159,14 @@ describe('EventMessage', () => {
 
     render(<EventMessage event={event} />);
     
-    expect(screen.getByText('🔧 UNKNOWN_ACTION')).toBeTruthy();
+    expect(screen.getByText('🔧 UNKNOWN: UNKNOWN_ACTION')).toBeTruthy();
+    
+    // Expand the details to see the JSON debug info
+    const expandButton = screen.getByTitle('Show details');
+    fireEvent.click(expandButton);
+    
+    // Should now include JSON debug info
+    expect(screen.getByText(/Debug Info \(Full Event\):/)).toBeTruthy();
   });
 
   it('handles events with missing args gracefully', () => {

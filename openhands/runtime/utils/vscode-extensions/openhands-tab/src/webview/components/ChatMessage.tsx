@@ -24,7 +24,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy to clipboard:", error);
+      console.error("Failed to copy to clipboard: Clipboard error");
     }
   };
 
