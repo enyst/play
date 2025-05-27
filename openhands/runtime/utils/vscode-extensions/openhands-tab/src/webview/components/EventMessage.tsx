@@ -2,6 +2,7 @@ import React from "react";
 import { AgentEvent } from "../../shared/types";
 import { ChatMessage } from "./ChatMessage";
 import { GenericEventMessage } from "./GenericEventMessage";
+import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
 
 interface EventMessageProps {
   event: AgentEvent;
@@ -69,13 +70,34 @@ export function EventMessage({ event }: EventMessageProps) {
     );
   }
 
-  // File operations - show name only for VSCode integration later
+  // File operations - show name and open in VSCode
   if (event.action === "read") {
+    const vscode = useVSCodeAPI();
     const path = event.args?.path || "unknown file";
+
+    const handleOpenFileClick = (filePath: string) => {
+      if (filePath === "unknown file") return;
+      vscode.postMessage({ type: "openFile", data: { path: filePath } });
+    };
+
     return (
       <GenericEventMessage
-        title={<span>📖 Read file: <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">{path}</code></span>}
-        details="File content will be available in VS Code editor"
+        title={
+          <span>
+            📖 Read file:{" "}
+            <button
+              onClick={() => handleOpenFileClick(path)}
+              className="text-[var(--vscode-textLink-foreground)] hover:underline focus:outline-none disabled:opacity-50 disabled:no-underline"
+              title={path === "unknown file" ? "File path is unknown" : `Click to open ${path}`}
+              disabled={path === "unknown file"}
+            >
+              <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">
+                {path}
+              </code>
+            </button>
+          </span>
+        }
+        details="Click path to open file in VS Code editor."
       />
     );
   }
