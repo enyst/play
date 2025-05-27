@@ -142,6 +142,14 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
           console.log("[OpenHands Extension] Processing health check request");
           await this.performHealthCheck();
           break;
+        case "openFile":
+          if (message.data && message.data.path) {
+            await this.handleOpenFileRequest(message.data.path);
+          } else {
+            console.warn("[OpenHands Extension] Received openFile request without a valid path.", message.data);
+            vscode.window.showWarningMessage("Could not open item: Path not provided.");
+          }
+          break;
         default:
           console.log("[OpenHands Extension] Unknown message type:", message.type);
       }
@@ -266,6 +274,38 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
           error: error instanceof Error ? error.message : "Unknown error",
         },
       });
+    }
+  }
+
+
+  private async handleOpenFileRequest(itemPath: string) {
+    console.log(`[OpenHands Extension] Processing openFile request for: ${itemPath}`);
+    try {
+      const itemStat = fs.statSync(itemPath); // Renamed 'stat' to 'itemStat'
+      if (itemStat.isDirectory()) {
+        console.log(`[OpenHands Extension] Path is a directory: ${itemPath}. Revealing in explorer.`);
+        const dirUri = vscode.Uri.file(itemPath);
+        // Ensure explorer is visible and then reveal
+        await vscode.commands.executeCommand('workbench.view.explorer');
+        await vscode.commands.executeCommand('revealInExplorer', dirUri);
+        console.log(`[OpenHands Extension] Successfully revealed directory: ${itemPath}`);
+      } else if (itemStat.isFile()) {
+        console.log(`[OpenHands Extension] Path is a file: ${itemPath}. Opening in editor.`);
+        const fileUri = vscode.Uri.file(itemPath);
+        const document = await vscode.workspace.openTextDocument(fileUri);
+        await vscode.window.showTextDocument(document);
+        console.log(`[OpenHands Extension] Successfully opened file: ${itemPath}`);
+      } else {
+        console.warn(`[OpenHands Extension] Path is neither a file nor a directory: ${itemPath}`);
+        vscode.window.showWarningMessage(`Cannot open: ${itemPath} is not a file or directory.`);
+      }
+    } catch (error) {
+      console.error(`[OpenHands Extension] Error processing path ${itemPath}:`, error);
+      if (error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+        vscode.window.showErrorMessage(`Path not found: ${itemPath}`);
+      } else {
+        vscode.window.showErrorMessage(`Failed to process path: ${itemPath}. ${error instanceof Error ? error.message : ""}`);
+      }
     }
   }
 
