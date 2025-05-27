@@ -12,7 +12,7 @@
 !out/**
 !dist/**
 !media/**
-!node_modules/**
+node_modules/
 !package.json
 !tsconfig.json
 !tsconfig.extension.json
