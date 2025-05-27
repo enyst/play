@@ -9,5 +9,5 @@ export function isObservationMessage(event: SocketMessage): event is Observation
 }
 
 export function isStatusMessage(event: SocketMessage): event is StatusMessage {
-  return 'status_update' in event && event.status_update === true;
+  return 'status_update' in event && event.status_update === true && typeof event.message === 'string';
 }
