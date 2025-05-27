@@ -337,3 +337,19 @@ Test setup FIXME comment: In src/test/setup.ts, there's a // FIXME: review this 
 6.3.
 
 ID generation in EventMessage.tsx: In src/webview/components/EventMessage.tsx, IDs for ChatMessage are generated like `thought-${event.id || Date.now()}`. Since ActionMessage and ObservationMessage (which are primarily handled by EventMessage) have a mandatory id: number property, the || Date.now() fallback might be unnecessary if event.id is always guaranteed to be present and valid for these types. If it's a safeguard for potential future types or edge cases, it's acceptable, but worth a quick check to ensure it's not masking any underlying issues where an ID might be unexpectedly missing.
+
+
+## Future Considerations and Architectural Notes
+
+### Handling File Paths from the Agent
+
+*   **Issue:** The OpenHands agent (LLM) may sometimes provide relative file paths in its observations (e.g., for file reads/writes). Currently, the VS Code extension's `handleOpenFileRequest` function expects absolute paths to reliably open files in the editor, especially if the file is outside the active VS Code workspace.
+*   **Current Behavior:** If a relative path is received (e.g., "README.md"), the attempt to open it will likely fail with an `ENOENT` error, as the path will be incorrectly resolved against the extension host's current working directory.
+*   **Future Strategy:** To robustly handle file paths:
+    1.  **Prefer Absolute Paths:** The backend agent should ideally always communicate file paths as absolute paths. This is the most straightforward solution.
+    2.  **Handling Relative Paths (If Necessary):** If the agent continues to send relative paths, the VS Code extension will need a mechanism to resolve them correctly. This would likely involve:
+        *   The extension needing to be aware of the OpenHands backend's `workspace_base` (the root directory the agent is operating within).
+        *   When a relative path is received from an agent observation, the extension would prepend the `workspace_base` to form an absolute path.
+        *   The method for the extension to obtain the `workspace_base` needs to be determined (e.g., a VS Code setting, an initial message from the backend upon connection, etc.).
+    *   This ensures that files can be opened in the VS Code editor regardless of whether they are inside or outside the `vscode.workspace.workspaceFolders` and regardless of how the agent expresses the path, as long as it's relative to a known `workspace_base`.
+

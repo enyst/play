@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import * as fs from 'fs';
 import * as path from 'path';
-import { SocketService } from "./services/socket-service";
-import { ConversationService } from "./services/conversation-service";
-import { HealthService } from "./services/health-service";
+import { SocketService } from "./services/socket-service.js";
+import { ConversationService } from "./services/conversation-service.js";
+import { HealthService } from "./services/health-service.js";
 import { WebviewMessage, SocketMessage, StatusMessage } from "../shared/types";
 
 export class OpenHandsViewProvider implements vscode.WebviewViewProvider {

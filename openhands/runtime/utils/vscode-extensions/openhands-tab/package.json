@@ -3,6 +3,7 @@
   "displayName": "OpenHands Tab",
   "description": "Adds a custom OpenHands tab to the VS Code activity bar.",
   "version": "0.0.1",
+  "type": "module",
   "license": "UNLICENSED",
   "publisher": "openhands",
   "repository": {
