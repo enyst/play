@@ -9,8 +9,9 @@ The primary goal is to create a Visual Studio Code extension that integrates Ope
 *   Adds an "OpenHands" tab to the VS Code Activity Bar.
 *   Provides a user interface within this tab where users can enter prompts.
 *   Executes the `openhands-agent` with the given prompt.
-*   Displays the full interaction (user prompts and agent responses/actions) in a chat-like view.
-*   Facilitates communication with the OpenHands backend server.
+*   Displays the interaction (user prompts and agent responses/actions) in a chat-like view.
+*   Integrates deeply with vscode, e.g. opens files in the vscode editor, opens diffs automatically when the agent made edits, reads user edits on the diffs and sends them to the backend server, executes commands in the integrated terminal.
+*   Communication with the OpenHands backend server.
 
 ### Guiding Principle: Maximize Reuse from Web Frontend
 
