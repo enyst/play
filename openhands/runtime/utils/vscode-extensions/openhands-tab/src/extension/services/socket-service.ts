@@ -1,10 +1,10 @@
 import { io, Socket } from "socket.io-client";
-import { AgentEvent } from "../../shared/types";
+import { SocketMessage } from "../../shared/types";
 
 export interface SocketServiceConfig {
   serverUrl: string;
   conversationId: string;
-  onEvent: (event: AgentEvent) => void;
+  onEvent: (event: SocketMessage) => void;
   onConnect: () => void;
   onDisconnect: (reason: string) => void;
   onError: (error: Error) => void;
@@ -94,7 +94,7 @@ export class SocketService {
       this.config.onConnect();
     });
 
-    this.socket.on("oh_event", (data: AgentEvent) => {
+    this.socket.on("oh_event", (data: SocketMessage) => {
       console.log("Received oh_event:", JSON.stringify(data, null, 2));
       this.clearResponseTimer();
       this.config.onEvent(data);
