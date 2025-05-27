@@ -10,6 +10,7 @@ describe('StatusBar Component', () => {
     isConnected: true,
     error: null,
     serverHealthy: true,
+    statusMessage: null,
     onStartNewConversation: mockOnStartNewConversation,
   };
 
@@ -120,6 +121,32 @@ describe('StatusBar Component', () => {
     expect(screen.getByText('Checking...')).toBeTruthy();
   });
 
+  it('should display status message when statusMessage prop is provided', () => {
+    const statusMessage = 'Setting up git hooks...';
+    render(<StatusBar {...defaultProps} statusMessage={statusMessage} />);
+    expect(screen.getByText(statusMessage)).toBeTruthy();
+    expect(screen.getByText('🔄')).toBeTruthy(); // Check for status icon
+  });
 
+  it('should not display status message when statusMessage prop is null', () => {
+    render(<StatusBar {...defaultProps} statusMessage={null} />);
+    expect(screen.queryByText('🔄')).toBeNull();
+  });
+
+  it('should display both error and status message when both are provided', () => {
+    const errorMessage = 'Network Error';
+    const statusMessage = 'Setting up git hooks...';
+    render(
+      <StatusBar
+        {...defaultProps}
+        error={errorMessage}
+        statusMessage={statusMessage}
+      />
+    );
+    expect(screen.getByText(errorMessage)).toBeTruthy();
+    expect(screen.getByText('⚠️')).toBeTruthy();
+    expect(screen.getByText(statusMessage)).toBeTruthy();
+    expect(screen.getByText('🔄')).toBeTruthy();
+  });
 
 });
