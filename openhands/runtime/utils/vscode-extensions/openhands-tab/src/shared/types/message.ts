@@ -21,6 +21,14 @@ export interface AgentEvent {
   type?: string;
 }
 
+export interface StatusMessage {
+  status_update: true;
+  type: string;
+  id?: string;
+  message: string;
+  conversation_title?: string;
+}
+
 export interface HealthCheckResult {
   isHealthy: boolean;
   error?: string;
@@ -31,6 +39,7 @@ export interface WebviewMessage {
     | "userPrompt"
     | "startNewConversation"
     | "agentResponse"
+    | "statusUpdate"
     | "clearChat"
     | "status"
     | "error"
