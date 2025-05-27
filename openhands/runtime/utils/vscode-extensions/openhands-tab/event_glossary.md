@@ -347,3 +347,90 @@ Events generally follow a structure like:
 - `src/shared/types/message.ts` - ActionMessage.args now properly typed as `Record<string, string>`
 
 **Status:** ✅ COMPLETED - Error handling with type-safe patterns
+
+---
+
+## Error Handling Patterns
+
+The OpenHands system uses **3 distinct patterns** for communicating errors. Each serves a different purpose and requires different handling logic.
+
+### 1. ErrorObservation (Formal Agent Errors)
+
+**Type:** `ObservationMessage` with `observation: "error"`
+
+**Detection Pattern:**
+```typescript
+if (isObservationMessage(event) && event.observation === "error") {
+  // Handle formal error observation
+}
+```
+
+**Structure:**
+- `observation`: `"error"`
+- `content`: string (error message)
+- `extras.error_id?`: string (optional error identifier)
+- `message`: string (human-readable error description)
+
+**Purpose:** Formal error reporting when the agent system itself encounters an error.
+
+**Source Reference:** 
+- Type definition: `src/shared/types/message.ts` (ObservationMessage interface)
+- Detection logic: `src/webview/components/App.tsx` lines 89-92
+- Event glossary: Line 276-282 (ErrorObservation section)
+
+### 2. Failed Operations (Observations with Error IDs)
+
+**Type:** Any `ObservationMessage` with `extras.error_id` present
+
+**Detection Pattern:**
+```typescript
+if (isObservationMessage(event) && typeof event.extras?.error_id === 'string' && event.extras.error_id) {
+  // Handle operation that failed
+}
+```
+
+**Structure:**
+- `observation`: any observation type (e.g., "run", "read", "write")
+- `extras.error_id`: string (indicates this operation failed)
+- `content`: string (may contain error details or partial results)
+- `message`: string (human-readable description)
+
+**Purpose:** Indicates a specific operation (command, file read, etc.) failed, but still reports what was attempted.
+
+**Source Reference:**
+- Type definition: `src/shared/types/message.ts` lines 64-68 (ObservationMessage.extras)
+- Detection logic: `src/webview/components/App.tsx` lines 95-98
+
+### 3. System Status Errors (StatusMessage)
+
+**Type:** `StatusMessage` 
+
+**Detection Pattern:**
+```typescript
+if (isStatusMessage(event)) {
+  // Handle system status update (may include errors)
+}
+```
+
+**Structure:**
+- `status_update`: `true`
+- `type`: string (status type)
+- `message`: string (status message, may indicate errors)
+- `id?`: string (optional identifier)
+
+**Purpose:** System-level status updates including connection issues, server problems, or other infrastructure errors.
+
+**Source Reference:**
+- Type definition: `src/shared/types/message.ts` lines 80-86 (StatusMessage interface)
+- Type guard: `src/webview/utils/typeGuards.ts` lines 11-13
+- Handling logic: `src/webview/components/App.tsx` lines 101-104
+
+### Error Handling Implementation
+
+**Current Implementation Location:** `src/webview/components/App.tsx` lines 87-98
+
+**Type Guards Used:** `src/webview/utils/typeGuards.ts`
+- `isObservationMessage()` - detects ObservationMessage types
+- `isStatusMessage()` - detects StatusMessage types
+
+**Error State Management:** App-level error state is set for ErrorObservation and failed operations, while StatusMessage errors are handled as status updates.
