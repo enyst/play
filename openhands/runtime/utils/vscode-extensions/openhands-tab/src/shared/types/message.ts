@@ -18,7 +18,7 @@ export interface ActionMessage {
   action: string;
 
   // The arguments for the action
-  args: Record<string, unknown>;
+  args: Record<string, string>;
 
   // A friendly message that can be put in the chat log
   message: string;
