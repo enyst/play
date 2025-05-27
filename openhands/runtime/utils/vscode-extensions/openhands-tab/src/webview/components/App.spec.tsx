@@ -82,7 +82,7 @@ describe('App', () => {
     render(<App />);
     
     // Simulate receiving a regular agent response
-    const agentEvent = { // Conforms to ActionMessage structure
+    const messageAction = { // Conforms to ActionMessage structure
       id: 1, // number
       timestamp: '2024-01-01T00:00:00Z',
       source: 'agent',
@@ -93,7 +93,7 @@ describe('App', () => {
 
     const webviewMessage: WebviewMessage = {
       type: 'agentResponse',
-      data: agentEvent,
+      data: messageAction,
     };
 
     // Simulate message from extension
@@ -121,7 +121,7 @@ describe('App', () => {
     }));
 
     // Send a regular agent response
-    const agentEvent = { // Conforms to ActionMessage structure
+    const messageAction = { // Conforms to ActionMessage structure
       id: 2, // number
       timestamp: '2024-01-01T00:00:00Z',
       source: 'agent',
@@ -131,7 +131,7 @@ describe('App', () => {
     };
 
     window.dispatchEvent(new MessageEvent('message', {
-      data: { type: 'agentResponse', data: agentEvent },
+      data: { type: 'agentResponse', data: messageAction },
     }));
 
     // Both should be visible but in different places
