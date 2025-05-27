@@ -24,8 +24,8 @@ export function EventMessage({ event }: EventMessageProps) {
   if (isActionMessage(event)) {
     // User messages and assistant messages
     if (event.action === "message") {
-      const content = (event.args?.content as string) || event.message || "";
-      const thought = event.args?.thought as string;
+      const content = typeof event.args?.content === 'string' ? event.args.content : event.message || "";
+      const thought = typeof event.args?.thought === 'string' ? event.args.thought : undefined;
       
       // If there's a thought, show it as the main message
       if (thought) {
@@ -58,7 +58,7 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Think actions - show as collapsible
     if (event.action === "think") {
-      const thought = (event.args?.thought as string) || event.message || "";
+      const thought = typeof event.args?.thought === 'string' ? event.args.thought : event.message || "";
       return (
         <GenericEventMessage
           title="🤔 Agent is thinking..."
@@ -69,8 +69,8 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Finish actions
     if (event.action === "finish") {
-      const finalThought = (event.args?.final_thought as string) || event.message || "";
-      const taskCompleted = event.args?.task_completed || "unknown";
+      const finalThought = typeof event.args?.final_thought === 'string' ? event.args.final_thought : event.message || "";
+      const taskCompleted = typeof event.args?.task_completed === 'string' ? event.args.task_completed : "unknown";
       
       return (
         <GenericEventMessage
@@ -83,7 +83,7 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // File operations - show name and open in VSCode
     if (event.action === "read") {
-      const path = (event.args?.path as string) || "unknown file";
+      const path = typeof event.args?.path === 'string' ? event.args.path : "unknown file";
 
       const handleOpenFileClick = (filePath: string) => {
         if (filePath === "unknown file") return;
@@ -113,7 +113,7 @@ export function EventMessage({ event }: EventMessageProps) {
     }
 
     if (event.action === "write") {
-      const path = (event.args?.path as string) || "unknown file";
+      const path = typeof event.args?.path === 'string' ? event.args.path : "unknown file";
       return (
         <GenericEventMessage
           title={<span>✏️ Wrote file: <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">{path}</code></span>}
@@ -124,7 +124,7 @@ export function EventMessage({ event }: EventMessageProps) {
     }
 
     if (event.action === "edit") {
-      const path = (event.args?.path as string) || "unknown file";
+      const path = typeof event.args?.path === 'string' ? event.args.path : "unknown file";
       return (
         <GenericEventMessage
           title={<span>✏️ Edited file: <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">{path}</code></span>}
@@ -136,7 +136,7 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Command execution - show command only for VSCode integration later
     if (event.action === "run") {
-      const command = (event.args?.command as string) || "unknown command";
+      const command = typeof event.args?.command === 'string' ? event.args.command : "unknown command";
       
       return (
         <GenericEventMessage
@@ -148,7 +148,7 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Python code execution
     if (event.action === "run_ipython") {
-      const code = (event.args?.code as string) || "unknown code";
+      const code = typeof event.args?.code === 'string' ? event.args.code : "unknown code";
       
       return (
         <GenericEventMessage
@@ -160,7 +160,7 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Browse actions
     if (event.action === "browse") {
-      const url = (event.args?.url as string) || "unknown URL";
+      const url = typeof event.args?.url === 'string' ? event.args.url : "unknown URL";
       return (
         <GenericEventMessage
           title={<span>🌐 Browsed: <a href={url} className="text-[var(--vscode-textLink-foreground)] hover:underline" target="_blank" rel="noopener noreferrer">{url}</a></span>}
