@@ -9,6 +9,7 @@ interface EventMessageProps {
 }
 
 export function EventMessage({ event }: EventMessageProps) {
+  const vscode = useVSCodeAPI();
   // Handle different event types based on the OpenHands event structure
   
   // User messages and assistant messages
@@ -72,7 +73,7 @@ export function EventMessage({ event }: EventMessageProps) {
 
   // File operations - show name and open in VSCode
   if (event.action === "read") {
-    const vscode = useVSCodeAPI();
+
     const path = event.args?.path || "unknown file";
 
     const handleOpenFileClick = (filePath: string) => {
