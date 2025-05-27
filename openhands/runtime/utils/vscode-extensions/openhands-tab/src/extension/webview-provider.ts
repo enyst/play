@@ -4,7 +4,7 @@ import * as path from 'path';
 import { SocketService } from "./services/socket-service";
 import { ConversationService } from "./services/conversation-service";
 import { HealthService } from "./services/health-service";
-import { WebviewMessage, AgentEvent } from "../shared/types";
+import { WebviewMessage, AgentEvent, StatusMessage } from "../shared/types";
 
 export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "openhandsView";
@@ -229,10 +229,27 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
       serverUrl: this.serverUrl,
       conversationId: this.conversationId,
       onEvent: (event: AgentEvent) => {
-        this.postMessageToWebview({
-          type: "agentResponse",
-          data: event,
-        });
+        // Check if this is a status update
+        if ((event as any).status_update) {
+          // Convert to StatusMessage format and send as statusUpdate
+          const statusMessage: StatusMessage = {
+            status_update: true,
+            type: (event as any).type || "info",
+            id: (event as any).id,
+            message: event.message || event.content || "",
+            conversation_title: (event as any).conversation_title,
+          };
+          this.postMessageToWebview({
+            type: "statusUpdate",
+            data: statusMessage,
+          });
+        } else {
+          // Regular agent event
+          this.postMessageToWebview({
+            type: "agentResponse",
+            data: event,
+          });
+        }
       },
       onConnect: () => {
         this.postMessageToWebview({

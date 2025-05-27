@@ -10,6 +10,7 @@ interface ChatInterfaceProps {
   isLoading: boolean;
   error: string | null;
   serverHealthy: boolean | null;
+  statusMessage: string | null;
   onSendMessage: (message: string) => void;
   onStartNewConversation: () => void;
 }
@@ -20,6 +21,7 @@ export function ChatInterface({
   isLoading,
   error,
   serverHealthy,
+  statusMessage,
   onSendMessage,
   onStartNewConversation,
 }: ChatInterfaceProps) {
@@ -57,6 +59,7 @@ export function ChatInterface({
           isConnected={isConnected}
           error={error}
           serverHealthy={serverHealthy}
+          statusMessage={statusMessage}
           onStartNewConversation={onStartNewConversation}
         />
       </div>

@@ -315,3 +315,17 @@ Events generally follow a structure like:
 - **Source:** `"agent"`
 - **Properties (`extras`):** Record<string, unknown>
 - **Content:** string (Note: Typically a message indicating user rejection.)
+
+---
+
+## Known Issues
+
+### Missing Event IDs in Frontend Types
+**Issue:** The `AgentEvent` interface in the VS Code extension does not include an `id` property, even though backend events do have IDs. This means event IDs are not captured or used in the frontend, which could be problematic for:
+- Event tracking and correlation
+- Debugging and logging
+- Potential future features that need to reference specific events
+
+**Location:** `src/shared/types/message.ts` - `AgentEvent` interface
+**Impact:** Currently not blocking functionality, but limits event traceability
+**Future Work:** AgentEvent interface doesn't exist in frontend, reconsider this

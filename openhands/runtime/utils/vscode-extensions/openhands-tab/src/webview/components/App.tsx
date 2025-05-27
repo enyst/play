@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Message, WebviewMessage, AgentEvent, HealthCheckResult } from "../../shared/types";
+import { Message, WebviewMessage, AgentEvent, StatusMessage, HealthCheckResult } from "../../shared/types";
 import { generateId } from "../../shared/utils";
 import { ChatInterface } from "./ChatInterface";
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
@@ -10,6 +10,7 @@ export function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [serverHealthy, setServerHealthy] = useState<boolean | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const vscode = useVSCodeAPI();
 
@@ -27,6 +28,9 @@ export function App() {
         case "agentResponse":
           handleAgentResponse(message.data);
           setIsLoading(false);
+          break;
+        case "statusUpdate":
+          handleStatusUpdate(message.data);
           break;
         case "status":
           if (message.message?.includes("connected")) {
@@ -49,6 +53,7 @@ export function App() {
           setIsConnected(false);
           setError(null);
           setIsLoading(false);
+          setStatusMessage(null);
           break;
         case "healthCheck":
           handleHealthCheck(message.data);
@@ -63,7 +68,7 @@ export function App() {
   const handleAgentResponse = (event: AgentEvent) => {
     console.log("[Webview] Processing agent event:", event);
     
-    // For now, we'll create a message that contains the raw event data
+    // For regular events, create a message that contains the raw event data
     // The EventMessage component will handle the proper rendering
     const eventMessage: Message = {
       id: generateId(),
@@ -83,6 +88,11 @@ export function App() {
       const errorMessage = event.content || event.message || "Agent error";
       setError(errorMessage);
     }
+  };
+
+  const handleStatusUpdate = (statusMsg: StatusMessage) => {
+    console.log("[Webview] Handling status update:", statusMsg);
+    setStatusMessage(statusMsg.message || null);
   };
 
   const handleHealthCheck = (healthResult: HealthCheckResult) => {
@@ -156,6 +166,7 @@ export function App() {
       isLoading={isLoading}
       error={error}
       serverHealthy={serverHealthy}
+      statusMessage={statusMessage}
       onSendMessage={handleSendMessage}
       onStartNewConversation={handleStartNewConversation}
     />
