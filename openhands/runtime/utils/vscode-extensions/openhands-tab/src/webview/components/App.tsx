@@ -40,10 +40,7 @@ export function App() {
           } else if (message.message?.includes("disconnected")) {
             setIsConnected(false);
           }
-          // Add status message to chat
-          if (message.message) {
-            addStatusMessage(message.message);
-          }
+
           break;
         case "error":
           setError(message.message || "Unknown error");
