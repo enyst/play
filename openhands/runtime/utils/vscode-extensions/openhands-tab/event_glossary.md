@@ -331,3 +331,19 @@ Events generally follow a structure like:
 
 **Location:** `src/shared/types/message.ts` - Now uses proper frontend types
 **Status:** ✅ COMPLETED - Extension now uses frontend-compatible types
+
+### ✅ RESOLVED: Error Handling Logic
+**Issue:** How to detect errors.
+
+**Resolution:** Fixed error handling to detect errors using frontend-compatible patterns:
+- `ErrorObservation`: Check `isObservationMessage(event) && event.observation === "error"`
+- `Error ID`: Check `event.extras?.error_id` for observations with error identifiers
+- **Type Safety**: Created shared type guards in `src/webview/utils/typeGuards.ts`
+- **Runtime Checking**: Replaced unsafe type assertions with proper runtime type checking
+
+**Location:** 
+- `src/webview/components/App.tsx` - Fixed error detection logic
+- `src/webview/utils/typeGuards.ts` - Shared type guard functions
+- `src/shared/types/message.ts` - ActionMessage.args now properly typed as `Record<string, string>`
+
+**Status:** ✅ COMPLETED - Error handling with type-safe patterns

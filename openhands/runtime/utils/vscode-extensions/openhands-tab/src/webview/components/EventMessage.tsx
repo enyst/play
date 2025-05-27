@@ -3,18 +3,10 @@ import { SocketMessage, ActionMessage, ObservationMessage } from "../../shared/t
 import { ChatMessage } from "./ChatMessage";
 import { GenericEventMessage } from "./GenericEventMessage";
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
+import { isActionMessage, isObservationMessage, isStatusMessage } from "../utils/typeGuards";
 
 interface EventMessageProps {
   event: SocketMessage;
-}
-
-// Type guards
-function isActionMessage(event: SocketMessage): event is ActionMessage {
-  return 'action' in event;
-}
-
-function isObservationMessage(event: SocketMessage): event is ObservationMessage {
-  return 'observation' in event;
 }
 
 export function EventMessage({ event }: EventMessageProps) {
