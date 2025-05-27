@@ -113,10 +113,11 @@
     "socket.io-client": "^4.8.1"
   },
   "bundleDependencies": [
+    "clsx",
     "react",
     "react-dom",
     "react-markdown",
     "remark-gfm",
-    "clsx"
+    "socket.io-client"
   ]
 }

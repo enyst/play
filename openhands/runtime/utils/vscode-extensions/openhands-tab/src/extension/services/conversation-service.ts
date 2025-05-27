@@ -52,7 +52,7 @@ export class ConversationService {
                 );
               }
             } catch (error) {
-              reject(new Error(`Failed to parse server response: ${error}`));
+              reject(new Error(`Failed to parse server response: ${error instanceof Error ? error.message : String(error)}`));
             }
           } else {
             if (res.statusCode === 400) {
