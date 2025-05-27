@@ -1,7 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
     "module": "es2020",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  }
+}
     "target": "es2020",
     "outDir": "out",
     "lib": ["es2020"],
