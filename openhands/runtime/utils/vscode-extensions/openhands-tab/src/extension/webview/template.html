@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="{{CSP_DIRECTIVES}}">
+  <link href="{{STYLE_RESET_URI}}" rel="stylesheet">
+  <link href="{{STYLE_VSCODE_URI}}" rel="stylesheet">
+  <link href="{{STYLE_CSS_URI}}" rel="stylesheet">
+  <title>OpenHands</title>
+</head>
+<body>
+  <div id="root">
+    <div style="padding: 20px; text-align: center; color: var(--vscode-editor-foreground);">
+      Loading OpenHands...
+    </div>
+  </div>
+  <script nonce="{{NONCE}}" src="{{SCRIPT_URI}}"></script>
+  <script nonce="{{NONCE}}">
+    console.log('OpenHands webview HTML loaded');
+    console.log('Script URI:', '{{SCRIPT_URI_LOG}}');
+    console.log('CSS URI:', '{{STYLE_CSS_URI_LOG}}');
+  </script>
+</body>
+</html>

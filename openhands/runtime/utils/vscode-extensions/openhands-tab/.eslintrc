@@ -46,6 +46,10 @@
         "react/require-default-props": "off",
         "import/prefer-default-export": "off",
         "no-underscore-dangle": "off",
+        // Disabled to align with the main OpenHands web frontend (.eslintrc lines 53-54),
+        // which also has these accessibility rules off.
+        // This consistency is per the extension guiding principle of maximizing reuse
+        // and alignment with the web frontend.
         "jsx-a11y/no-static-element-interactions": "off",
         "jsx-a11y/click-events-have-key-events": "off",
         "jsx-a11y/label-has-associated-control": [
