@@ -323,3 +323,17 @@ openhands-tab/
 ## 5. Frontend Alignment Implementation Details
 
 **Key Achievement:** Extension maintains full functionality while now using identical linting and formatting standards as the web frontend, ensuring code consistency across the OpenHands ecosystem.
+
+## 6. FIXME:
+
+6.1.
+
+Type definition for Message.eventData: In src/webview/components/App.tsx, eventData is dynamically added to Message objects using (eventMessage as any).eventData. This bypasses type checking. It's recommended to update the Message interface in src/shared/types/message.ts to include an optional eventData property for better type safety.
+
+6.2.
+
+Test setup FIXME comment: In src/test/setup.ts, there's a // FIXME: review this comment above the scrollIntoView mock. This mock is a standard practice for JSDOM environments where layout-dependent APIs aren't implemented. If there are no specific concerns with this mock, consider removing or clarifying the FIXME.
+
+6.3.
+
+ID generation in EventMessage.tsx: In src/webview/components/EventMessage.tsx, IDs for ChatMessage are generated like `thought-${event.id || Date.now()}`. Since ActionMessage and ObservationMessage (which are primarily handled by EventMessage) have a mandatory id: number property, the || Date.now() fallback might be unnecessary if event.id is always guaranteed to be present and valid for these types. If it's a safeguard for potential future types or edge cases, it's acceptable, but worth a quick check to ensure it's not masking any underlying issues where an ID might be unexpectedly missing.
