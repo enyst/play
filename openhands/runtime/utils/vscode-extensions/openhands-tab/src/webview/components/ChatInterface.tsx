@@ -36,7 +36,7 @@ export function ChatInterface({
   }, [messages]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" role="main">
       <div className="flex-1 overflow-y-auto px-3 pt-3 scrollbar">
         <Messages messages={messages} />
         <div ref={messagesEndRef} />

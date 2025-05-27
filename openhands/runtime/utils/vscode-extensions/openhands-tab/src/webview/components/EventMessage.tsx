@@ -1,9 +1,9 @@
 import React from "react";
-import { SocketMessage, ActionMessage, ObservationMessage } from "../../shared/types";
+import { SocketMessage } from "../../shared/types";
 import { ChatMessage } from "./ChatMessage";
 import { GenericEventMessage } from "./GenericEventMessage";
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
-import { isActionMessage, isObservationMessage, isStatusMessage } from "../utils/typeGuards";
+import { isActionMessage, isObservationMessage } from "../utils/typeGuards";
 
 interface EventMessageProps {
   event: SocketMessage;
