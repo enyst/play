@@ -3,6 +3,7 @@ import { Message, WebviewMessage, SocketMessage, StatusMessage, HealthCheckResul
 import { generateId } from "../../shared/utils";
 import { ChatInterface } from "./ChatInterface";
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
+import { isObservationMessage } from "../utils/typeGuards";
 
 export function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -83,9 +84,16 @@ export function App() {
     
     addMessage(eventMessage);
     
-    // Still handle errors at the app level for the error state
-    if (event.error) {
+    // Handle errors at the app level for the error state
+    // Check for ErrorObservation (observation type "error")
+    if (isObservationMessage(event) && event.observation === "error") {
       const errorMessage = event.content || event.message || "Agent error";
+      setError(errorMessage);
+    }
+    
+    // Check for observations with error_id (indicates an error occurred)
+    if (isObservationMessage(event) && typeof event.extras?.error_id === 'string' && event.extras.error_id) {
+      const errorMessage = event.content || event.message || "Agent encountered an error";
       setError(errorMessage);
     }
   };
