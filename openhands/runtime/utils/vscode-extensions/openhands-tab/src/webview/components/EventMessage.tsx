@@ -3,7 +3,7 @@ import { SocketMessage } from "../../shared/types";
 import { ChatMessage } from "./ChatMessage";
 import { GenericEventMessage } from "./GenericEventMessage";
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
-import { isActionMessage, isObservationMessage } from "../utils/typeGuards";
+import { isActionMessage, isObservationMessage, isStatusMessage } from "../utils/typeGuards";
 
 interface EventMessageProps {
   event: SocketMessage;
@@ -193,12 +193,16 @@ export function EventMessage({ event }: EventMessageProps) {
   }
 
   // Fallback for unknown event types (StatusMessage or unknown)
-  const eventType = isActionMessage(event) ? event.action : 
-                   isObservationMessage(event) ? event.observation : 
-                   "status_update" in event ? "status" : "unknown";
-  const basicContent = isObservationMessage(event) ? event.content : 
-                      isActionMessage(event) ? event.message : 
-                      "message" in event ? event.message : "";
+  const eventType = isActionMessage(event) ? event.action :
+                   isObservationMessage(event) ? event.observation :
+                   isStatusMessage(event) ? "status" : "unknown"; // Use type guard
+  // For basicContent, if it's a StatusMessage, we want event.message.
+  // If it's none of the known types but has a 'message' property, use that.
+  // Otherwise, empty string.
+  const basicContent = isStatusMessage(event) ? event.message :
+                      isObservationMessage(event) ? (event.content || event.message) :
+                      isActionMessage(event) ? event.message :
+                      ("message" in event && typeof (event as any).message === 'string') ? (event as any).message : "";
   const jsonDebugInfo = JSON.stringify(event, null, 2);
   
   const debugDetails = basicContent 
