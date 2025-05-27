@@ -35,7 +35,8 @@ export interface WebviewMessage {
     | "status"
     | "error"
     | "checkHealth"
-    | "healthCheck";
+    | "healthCheck"
+    | "openFile";
   data?: any;
   text?: string;
   message?: string;
