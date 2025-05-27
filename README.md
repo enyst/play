@@ -1,4 +1,4 @@
-# OpenHands-Tab Development Repository
+# OpenHands-Tab
 
 This repository is a playground specifically for the development and testing of the **OpenHands-Tab VS Code extension**.
 
