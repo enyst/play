@@ -281,7 +281,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
   private async handleOpenFileRequest(itemPath: string) {
     console.log(`[OpenHands Extension] Processing openFile request for: ${itemPath}`);
     try {
-      const itemStat = fs.statSync(itemPath); // Renamed 'stat' to 'itemStat'
+      const itemStat = await fs.promises.stat(itemPath); // Renamed 'stat' to 'itemStat', now async
       if (itemStat.isDirectory()) {
         console.log(`[OpenHands Extension] Path is a directory: ${itemPath}. Revealing in explorer.`);
         const dirUri = vscode.Uri.file(itemPath);
