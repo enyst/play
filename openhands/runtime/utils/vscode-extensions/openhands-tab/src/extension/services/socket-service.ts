@@ -17,7 +17,7 @@ export class SocketService {
 
   private responseTimer: NodeJS.Timeout | null = null;
 
-  private readonly RESPONSE_TIMEOUT_MS = 30000; // 30 seconds
+  private readonly RESPONSE_TIMEOUT_MS = 30000; // FIXME: this should be read from the main sandbox configuration
 
   constructor(config: SocketServiceConfig) {
     this.config = config;
