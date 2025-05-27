@@ -56,6 +56,9 @@ export function App() {
         case "healthCheck":
           handleHealthCheck(message.data);
           break;
+        default:
+          console.warn("[Webview] Unknown message type:", message.type);
+          break;
       }
     };
 
