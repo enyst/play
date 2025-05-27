@@ -5,6 +5,7 @@ interface StatusBarProps {
   isConnected: boolean;
   error: string | null;
   serverHealthy: boolean | null;
+  statusMessage: string | null;
   onStartNewConversation: () => void;
 }
 
@@ -12,6 +13,7 @@ export function StatusBar({
   isConnected,
   error,
   serverHealthy,
+  statusMessage,
   onStartNewConversation,
 }: StatusBarProps) {
   const getStatusDotColor = (status: boolean | null) => {
@@ -64,6 +66,14 @@ export function StatusBar({
         <div className="mt-1 pt-1 border-t border-[var(--vscode-editorGroup-border)] text-[var(--vscode-errorForeground)] text-xs break-words">
           <span className="mr-1">⚠️</span>
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Status Message Line - show current agent status */}
+      {statusMessage && (
+        <div className="mt-1 pt-1 border-t border-[var(--vscode-editorGroup-border)] text-[var(--vscode-foreground)] text-xs break-words">
+          <span className="mr-1">🔄</span>
+          <span>{statusMessage}</span>
         </div>
       )}
     </div>
