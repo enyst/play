@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { OpenHandsViewProvider } from "./webview-provider";
+import { OpenHandsViewProvider } from "./webview-provider.js";
 
 export function activate(context: vscode.ExtensionContext) {
   try {
