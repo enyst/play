@@ -1,13 +1,13 @@
 
 ## VS Code Extension (openhands-tab)
 
-The VS Code extension is located in `/Users/enyst/repos/play/openhands/runtime/utils/vscode-extensions/openhands-tab`.
+The VS Code extension is located in `openhands/runtime/utils/vscode-extensions/openhands-tab` (relative to the project root).
 
 ### Building the Extension
 
 After making changes to the extension code (either in `src/extension/*` or `src/webview/*`), you need to rebuild it.
 Navigate to the extension's directory:
-`cd /Users/enyst/repos/play/openhands/runtime/utils/vscode-extensions/openhands-tab`
+`cd openhands/runtime/utils/vscode-extensions/openhands-tab`
 
 Then, run the compile command:
 `npm run compile`
