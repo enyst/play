@@ -7,19 +7,75 @@ export interface Message {
   imageUrls?: string[];
 }
 
-export interface AgentEvent {
-  action?: string;
-  args?: {
-    content?: string;
-    thought?: string;
-    [key: string]: any;
+// Frontend-compatible types for socket messages
+export interface ActionMessage {
+  id: number;
+
+  // Either 'agent' or 'user'
+  source: "agent" | "user";
+
+  // The action to be taken
+  action: string;
+
+  // The arguments for the action
+  args: Record<string, unknown>;
+
+  // A friendly message that can be put in the chat log
+  message: string;
+
+  // The timestamp of the message
+  timestamp: string;
+
+  // LLM metrics information
+  llm_metrics?: {
+    accumulated_cost: number;
+    accumulated_token_usage: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      cache_read_tokens: number;
+      cache_write_tokens: number;
+      context_window: number;
+      per_turn_token: number;
+    };
   };
-  observation?: string;
-  content?: string;
-  message?: string;
-  error?: boolean;
-  type?: string;
+
+  // Tool call metadata
+  tool_call_metadata?: {
+    model_response?: {
+      usage: {
+        prompt_tokens: number;
+        completion_tokens: number;
+        total_tokens: number;
+      };
+    };
+  };
 }
+
+export interface ObservationMessage {
+  // The type of observation
+  observation: string;
+
+  id: number;
+  cause: number;
+
+  // The observed data
+  content: string;
+
+  extras: {
+    metadata: Record<string, unknown>;
+    error_id: string;
+    [key: string]: string | Record<string, unknown>;
+  };
+
+  // A friendly message that can be put in the chat log
+  message: string;
+
+  // The timestamp of the message
+  timestamp: string;
+}
+
+// Union type for all socket messages (matches frontend)
+export type SocketMessage = ActionMessage | ObservationMessage | StatusMessage;
 
 export interface StatusMessage {
   status_update: true;
