@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Message, WebviewMessage, AgentEvent, StatusMessage, HealthCheckResult } from "../../shared/types";
+import { Message, WebviewMessage, SocketMessage, StatusMessage, HealthCheckResult } from "../../shared/types";
 import { generateId } from "../../shared/utils";
 import { ChatInterface } from "./ChatInterface";
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
@@ -65,7 +65,7 @@ export function App() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  const handleAgentResponse = (event: AgentEvent) => {
+  const handleAgentResponse = (event: SocketMessage) => {
     console.log("[Webview] Processing agent event:", event);
     
     // For regular events, create a message that contains the raw event data

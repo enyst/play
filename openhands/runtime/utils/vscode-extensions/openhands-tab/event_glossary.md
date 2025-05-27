@@ -320,12 +320,14 @@ Events generally follow a structure like:
 
 ## Known Issues
 
-### Missing Event IDs in Frontend Types
-**Issue:** The `AgentEvent` interface in the VS Code extension does not include an `id` property, even though backend events do have IDs. This means event IDs are not captured or used in the frontend, which could be problematic for:
-- Event tracking and correlation
-- Debugging and logging
-- Potential future features that need to reference specific events
+### ✅ RESOLVED: Frontend Type Compatibility
+**Issue:** The extension was using a custom interface that didn't match the frontend's proper types.
 
-**Location:** `src/shared/types/message.ts` - `AgentEvent` interface
-**Impact:** Currently not blocking functionality, but limits event traceability
-**Future Work:** AgentEvent interface doesn't exist in frontend, reconsider this
+**Resolution:** Replaced custom interface with proper frontend-compatible types:
+- `ActionMessage` - for agent actions (includes `id`, `source`, `action`, `args`, `message`, `timestamp`)
+- `ObservationMessage` - for observations (includes `id`, `cause`, `observation`, `content`, `extras`, `message`, `timestamp`)  
+- `StatusMessage` - for status updates
+- `SocketMessage` - union type of the above three
+
+**Location:** `src/shared/types/message.ts` - Now uses proper frontend types
+**Status:** ✅ COMPLETED - Extension now uses frontend-compatible types

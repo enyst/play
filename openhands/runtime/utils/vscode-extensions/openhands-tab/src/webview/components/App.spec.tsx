@@ -1,10 +1,8 @@
-import { App } from './App';it('renders without crashing', () => {
-  render(<App />);
-  expect(screen.getByRole('main')).toBeTruthy();
-});
+import { App } from './App';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WebviewMessage, StatusMessage } from '../../shared/types';
+
 
 // Mock VSCode API
 const mockPostMessage = vi.fn();
