@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { EventMessage } from './EventMessage';
+import { ActionMessage } from '../../shared/types/message';
 
 describe('EventMessage', () => {
   afterEach(() => {
@@ -8,12 +9,15 @@ describe('EventMessage', () => {
   });
 
   it('renders UserMessageAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 100,
       action: 'message',
       args: {
         content: 'Hello, this is a user message',
       },
       source: 'user',
+      message: 'User message sent',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -23,12 +27,15 @@ describe('EventMessage', () => {
   });
 
   it('renders AssistantMessageAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 101,
       action: 'message',
       args: {
         content: 'Hello, this is an assistant response',
       },
       source: 'agent',
+      message: 'Assistant message sent',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -38,11 +45,15 @@ describe('EventMessage', () => {
   });
 
   it('renders AgentThinkAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 102,
       action: 'think',
       args: {
         thought: 'I need to analyze this problem',
       },
+      source: 'agent',
+      message: 'Agent is thinking',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -53,11 +64,15 @@ describe('EventMessage', () => {
   });
 
   it('renders AgentFinishAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 103,
       action: 'finish',
       args: {
-        outputs: { success: true },
+        outputs: JSON.stringify({ success: true }),
       },
+      source: 'agent',
+      message: 'Agent finished task',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -67,11 +82,15 @@ describe('EventMessage', () => {
   });
 
   it('renders AgentFinishAction with partial completion', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 104,
       action: 'finish',
       args: {
-        outputs: { success: false },
+        outputs: JSON.stringify({ success: false }),
       },
+      source: 'agent',
+      message: 'Agent finished task (partially)',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -80,11 +99,15 @@ describe('EventMessage', () => {
   });
 
   it('renders FileReadAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 105,
       action: 'read',
       args: {
         path: '/path/to/file.py',
       },
+      source: 'agent',
+      message: 'Agent read file',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -94,12 +117,16 @@ describe('EventMessage', () => {
   });
 
   it('renders FileWriteAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 106,
       action: 'write',
       args: {
         path: '/path/to/newfile.py',
         content: 'print("Hello, World!")',
       },
+      source: 'agent',
+      message: 'Agent wrote file',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -109,11 +136,15 @@ describe('EventMessage', () => {
   });
 
   it('renders CmdRunAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 107,
       action: 'run',
       args: {
         command: 'python test.py',
       },
+      source: 'agent',
+      message: 'Agent ran command',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -123,11 +154,15 @@ describe('EventMessage', () => {
   });
 
   it('renders IPythonRunCellAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 108,
       action: 'run_ipython',
       args: {
         code: 'print("Hello from IPython")',
       },
+      source: 'agent',
+      message: 'Agent ran IPython code',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -136,11 +171,15 @@ describe('EventMessage', () => {
   });
 
   it('renders BrowseInteractiveAction correctly', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 109,
       action: 'browse',
       args: {
         url: 'https://example.com',
       },
+      source: 'agent',
+      message: 'Agent browsed URL',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -150,11 +189,15 @@ describe('EventMessage', () => {
   });
 
   it('renders unknown action with fallback', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 110,
       action: 'unknown_action',
       args: {
         data: 'some data',
       },
+      source: 'agent',
+      message: 'Unknown agent action',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);
@@ -170,9 +213,13 @@ describe('EventMessage', () => {
   });
 
   it('handles events with missing args gracefully', () => {
-    const event = {
+    const event: ActionMessage = {
+      id: 111,
       action: 'message',
+      args: {},
       source: 'user',
+      message: 'User message with missing args',
+      timestamp: new Date().toISOString(),
     };
 
     render(<EventMessage event={event} />);

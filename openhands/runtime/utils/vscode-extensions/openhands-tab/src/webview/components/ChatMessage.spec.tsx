@@ -19,7 +19,8 @@ describe('ChatMessage', () => {
   it('renders user message correctly', () => {
     const message: Message = {
       id: '1',
-      type: 'user',
+      sender: 'user',
+      type: 'message',
       content: 'Hello, this is a user message',
       timestamp: Date.now(),
     };
@@ -32,7 +33,8 @@ describe('ChatMessage', () => {
   it('renders assistant message correctly', () => {
     const message: Message = {
       id: '2',
-      type: 'assistant',
+      sender: 'assistant',
+      type: 'message',
       content: 'Hello, this is an assistant response',
       timestamp: Date.now(),
     };
@@ -45,6 +47,7 @@ describe('ChatMessage', () => {
   it('renders action message with EventMessage component', () => {
     const message: Message = {
       id: '3',
+      sender: 'assistant',
       type: 'action',
       content: 'Action performed',
       timestamp: Date.now(),
@@ -64,7 +67,8 @@ describe('ChatMessage', () => {
   it('shows copy button on hover', () => {
     const message: Message = {
       id: '4',
-      type: 'user',
+      sender: 'user',
+      type: 'message',
       content: 'Content to copy',
       timestamp: Date.now(),
     };
@@ -85,7 +89,8 @@ describe('ChatMessage', () => {
   it('copies content to clipboard when copy button is clicked', async () => {
     const message: Message = {
       id: '5',
-      type: 'user',
+      sender: 'user',
+      type: 'message',
       content: 'Content to copy',
       timestamp: Date.now(),
     };
@@ -108,7 +113,8 @@ describe('ChatMessage', () => {
   it('applies correct styling for user messages', () => {
     const message: Message = {
       id: '6',
-      type: 'user',
+      sender: 'user',
+      type: 'message',
       content: 'User message',
       timestamp: Date.now(),
     };
@@ -123,7 +129,8 @@ describe('ChatMessage', () => {
   it('applies correct styling for assistant messages', () => {
     const message: Message = {
       id: '7',
-      type: 'assistant',
+      sender: 'assistant',
+      type: 'message',
       content: 'Assistant message',
       timestamp: Date.now(),
     };
@@ -137,7 +144,8 @@ describe('ChatMessage', () => {
   it('applies correct styling for system messages', () => {
     const message: Message = {
       id: '8',
-      type: 'system',
+      sender: 'assistant',
+      type: 'status',
       content: 'System message',
       timestamp: Date.now(),
     };
@@ -151,6 +159,7 @@ describe('ChatMessage', () => {
   it('applies correct styling for error messages', () => {
     const message: Message = {
       id: '9',
+      sender: 'assistant',
       type: 'error',
       content: 'Something went wrong!',
       timestamp: Date.now(),
@@ -165,7 +174,8 @@ describe('ChatMessage', () => {
   it('handles long content with proper word breaking', () => {
     const message: Message = {
       id: '10',
-      type: 'user',
+      sender: 'user',
+      type: 'message',
       content: 'This is a very long message that should wrap properly and not overflow the container boundaries when displayed in the chat interface',
       timestamp: Date.now(),
     };
@@ -185,7 +195,8 @@ describe('ChatMessage', () => {
 
     const message: Message = {
       id: '11',
-      type: 'user',
+      sender: 'user',
+      type: 'message',
       content: 'Content to copy',
       timestamp: Date.now(),
     };
