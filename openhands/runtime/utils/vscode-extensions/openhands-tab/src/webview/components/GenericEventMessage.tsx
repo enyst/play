@@ -46,7 +46,7 @@ export function GenericEventMessage({
               title={showDetails ? "Hide details" : "Show details"}
               style={{ lineHeight: '1' }} // Helps with vertical alignment of the text icon
             >
-              {showDetails ? "«" : "»"} {/* New text icons */}
+              {showDetails ? "^" : "v"} {/* FIXME: these are wrong, should be a real arrow up/down ^/v */}
             </button>
           )}
         </div>

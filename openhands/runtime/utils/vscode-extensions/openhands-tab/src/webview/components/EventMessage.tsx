@@ -192,11 +192,32 @@ export function EventMessage({ event }: EventMessageProps) {
 
       return (
         <GenericEventMessage
-          title="🧠 Looking for context..."
+          title={<span className="text-[var(--vscode-disabledForeground)]">Looking for context...</span>}
           details={detailsContent + `\n\n**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``}
         />
       );
     }
+
+    // Handle system prompt (action: "system_message_set")
+    // FIXME: this is hallucination!
+    if (event.action === "system_message_set") {
+      // The primary content of the system message is in event.message
+      const systemPromptContent = typeof event.message === 'string'
+        ? event.message
+        : "System prompt content not found in event.message.";
+
+      // The event.args contains metadata like version, agent_class.
+      // We'll include the full event in debug details.
+      const detailsWithDebug = systemPromptContent + `\n\n**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``;
+
+      return (
+        <GenericEventMessage
+          title="System Message"
+          details={detailsWithDebug}
+        />
+      );
+    }
+
   } // End of 'if (isActionMessage(event))' block
 
   // Handle ObservationMessage types
@@ -247,10 +268,11 @@ export function EventMessage({ event }: EventMessageProps) {
 
       return (
         <GenericEventMessage
-          title="🧠 Context Retrieved"
+          title={<span className="text-[var(--vscode-disabledForeground)]">Context Retrieved</span>}
           details={detailsMarkdown}
         />
       );
+
     }
 
     // Generic observations
