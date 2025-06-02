@@ -34,10 +34,12 @@ export function GenericEventMessage({
   return (
     <div className="flex flex-col gap-2 border-l-2 border-neutral-400 pl-3 my-2 py-2 text-sm w-full">
       <div className="flex items-center justify-between font-medium text-[var(--vscode-editor-foreground)]">
-        <div className="flex items-center flex-grow min-w-0 mr-2"> {/* flex-grow to take space, min-w-0 for truncation, mr-2 for spacing from success indicator */}
+        <div className="flex items-center flex-grow min-w-0"> {/* flex-grow to take space, min-w-0 for truncation. FIXME: Success indicator should be inside */}
           <div className="flex-grow truncate"> {/* Title container, allows title to take space and truncate if too long */}
             {title}
           </div>
+          {/* Success indicator moved here, wrapped in a span for styling & to ensure it doesn't get squished */}
+          <span className="ml-1 flex-shrink-0">{getSuccessIndicator()}</span>
           {details && (
             <button
               type="button"
@@ -51,7 +53,6 @@ export function GenericEventMessage({
           )}
         </div>
 
-        {getSuccessIndicator()}
       </div>
 
       {showDetails && details && (
