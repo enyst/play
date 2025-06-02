@@ -11,39 +11,39 @@ interface EventMessageProps {
 
 export function EventMessage({ event }: EventMessageProps) {
   const vscode = useVSCodeAPI();
-  
+
   // Handle ActionMessage types
   if (isActionMessage(event)) {
     // User messages and assistant messages
     if (event.action === "message") {
       const content = typeof event.args?.content === 'string' ? event.args.content : event.message || "";
       const thought = typeof event.args?.thought === 'string' ? event.args.thought : undefined;
-      
+
       // If there's a thought, show it as the main message
       if (thought) {
         return (
-          <ChatMessage 
+          <ChatMessage
             message={{
               id: `thought-${event.id || Date.now()}`,
               content: thought,
               sender: "assistant",
               timestamp: Date.now(),
               type: "message"
-            }} 
+            }}
           />
         );
       }
-      
+
       // Regular message
       return (
-        <ChatMessage 
+        <ChatMessage
           message={{
             id: `msg-${event.id || Date.now()}`,
             content,
             sender: "assistant",
             timestamp: Date.now(),
             type: "message"
-          }} 
+          }}
         />
       );
     }
@@ -63,7 +63,7 @@ export function EventMessage({ event }: EventMessageProps) {
     if (event.action === "finish") {
       const finalThought = typeof event.args?.final_thought === 'string' ? event.args.final_thought : event.message || "";
       const taskCompleted = typeof event.args?.task_completed === 'string' ? event.args.task_completed : "unknown";
-      
+
       return (
         <GenericEventMessage
           title={`✅ Task ${taskCompleted === "success" ? "completed successfully" : taskCompleted === "failure" ? "failed" : "partially completed"}`}
@@ -129,7 +129,7 @@ export function EventMessage({ event }: EventMessageProps) {
     // Command execution - show command only for VSCode integration later
     if (event.action === "run") {
       const command = typeof event.args?.command === 'string' ? event.args.command : "unknown command";
-      
+
       return (
         <GenericEventMessage
           title={<span>⚡ Executed: <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">{command}</code></span>}
@@ -141,7 +141,7 @@ export function EventMessage({ event }: EventMessageProps) {
     // Python code execution
     if (event.action === "run_ipython") {
       const code = typeof event.args?.code === 'string' ? event.args.code : "unknown code";
-      
+
       return (
         <GenericEventMessage
           title="🐍 Executed Python code"
@@ -159,8 +159,45 @@ export function EventMessage({ event }: EventMessageProps) {
           details="Page loaded"
         />
       );
+    } // End of 'browse' action handler
+
+    // Recall actions
+    if (event.action === "recall") {
+      const thoughtArg = typeof event.args?.thought === 'string' ? event.args.thought : null;
+      const queryArg = typeof event.args?.query === 'string' ? event.args.query : null;
+      const recallTypeArg = typeof event.args?.recall_type === 'string' ? event.args.recall_type : null;
+
+      let detailsContent = "";
+      if (thoughtArg) {
+        // If a thought is provided, use it as the primary detail.
+        detailsContent += thoughtArg;
+      } else {
+        // Default message if no specific thought is in args.
+        detailsContent += "Agent is recalling information.";
+      }
+
+      if (queryArg) {
+        detailsContent += `\nQuery: ${queryArg}`;
+      }
+      if (recallTypeArg) {
+        detailsContent += `\nType: ${recallTypeArg}`;
+      }
+
+      // If detailsContent is still the generic "Agent is recalling information."
+      // and no other specific arguments (query, type) were present,
+      // provide a slightly more user-friendly default.
+      if (detailsContent === "Agent is recalling information." && !queryArg && !recallTypeArg) {
+          detailsContent = "Agent is attempting to recall relevant information or context based on the current conversation.";
+      }
+
+      return (
+        <GenericEventMessage
+          title="🧠 Looking for context..."
+          details={detailsContent + `\n\n**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``}
+        />
+      );
     }
-  }
+  } // End of 'if (isActionMessage(event))' block
 
   // Handle ObservationMessage types
   if (isObservationMessage(event)) {
@@ -168,14 +205,50 @@ export function EventMessage({ event }: EventMessageProps) {
     if (event.observation === "error") {
       const errorContent = event.content || event.message || "Unknown error";
       return (
-        <ChatMessage 
+        <ChatMessage
           message={{
             id: `error-${event.id || Date.now()}`,
             content: errorContent,
             sender: "assistant",
             timestamp: Date.now(),
             type: "error"
-          }} 
+          }}
+        />
+      );
+    }
+
+    // RecallObservation
+    if (event.observation === "recall") {
+      let detailsMarkdown = "";
+
+      if (event.content && String(event.content).trim() !== "") {
+        detailsMarkdown += `**Content:**\n\`\`\`\n${String(event.content)}\n\`\`\`\n\n`;
+      } else {
+        detailsMarkdown += "**Content:** (No direct content provided)\n\n";
+      }
+
+      if (event.extras && Object.keys(event.extras).length > 0) {
+        detailsMarkdown += "**Details (from extras):**\n";
+        for (const key in event.extras) {
+          if (Object.prototype.hasOwnProperty.call(event.extras, key)) {
+            const value = event.extras[key];
+            // Format values, ensuring objects/arrays are stringified
+            const formattedValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+            detailsMarkdown += `- **${key}:** ${formattedValue.includes('\n') ? `\n  \`\`\`\n  ${formattedValue.replace(/^/gm, '  ')}\n  \`\`\`` : formattedValue}\n`;
+
+          }
+        }
+        detailsMarkdown += "\\n";
+      } else {
+        detailsMarkdown += "**Details (from extras):** (No additional details provided)\n\n";
+      }
+
+      detailsMarkdown += `**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``;
+
+      return (
+        <GenericEventMessage
+          title="🧠 Context Retrieved"
+          details={detailsMarkdown}
         />
       );
     }
@@ -183,7 +256,7 @@ export function EventMessage({ event }: EventMessageProps) {
     // Generic observations
     const observationType = event.observation.toUpperCase();
     const content = event.content || event.message || "";
-    
+
     return (
       <GenericEventMessage
         title={`📋 ${observationType}`}
@@ -204,11 +277,11 @@ export function EventMessage({ event }: EventMessageProps) {
                       isActionMessage(event) ? event.message :
                       ("message" in event && typeof (event as any).message === 'string') ? (event as any).message : "";
   const jsonDebugInfo = JSON.stringify(event, null, 2);
-  
-  const debugDetails = basicContent 
+
+  const debugDetails = basicContent
     ? `${basicContent}\n\n**Debug Info (Full Event):**\n\`\`\`json\n${jsonDebugInfo}\n\`\`\``
     : `**Debug Info (Full Event):**\n\`\`\`json\n${jsonDebugInfo}\n\`\`\``;
-  
+
   return (
     <GenericEventMessage
       title={`🔧 UNKNOWN: ${eventType.toUpperCase()}`}

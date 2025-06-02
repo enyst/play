@@ -18,7 +18,7 @@ export function GenericEventMessage({
 
   const getSuccessIndicator = () => {
     if (!success) return null;
-    
+
     switch (success) {
       case "success":
         return <span className="text-[var(--vscode-charts-green)] text-xs">✓</span>;
@@ -34,24 +34,19 @@ export function GenericEventMessage({
   return (
     <div className="flex flex-col gap-2 border-l-2 border-neutral-400 pl-3 my-2 py-2 text-sm w-full">
       <div className="flex items-center justify-between font-medium text-[var(--vscode-editor-foreground)]">
-        <div className="flex items-center gap-2">
-          {title}
+        <div className="flex items-center flex-grow min-w-0 mr-2"> {/* flex-grow to take space, min-w-0 for truncation, mr-2 for spacing from success indicator */}
+          <div className="flex-grow truncate"> {/* Title container, allows title to take space and truncate if too long */}
+            {title}
+          </div>
           {details && (
             <button
               type="button"
               onClick={() => setShowDetails((prev) => !prev)}
-              className="text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-editor-foreground)] transition-colors"
+              className="flex-shrink-0 text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-editor-foreground)] transition-colors ml-2 px-1 py-0 rounded text-sm" // flex-shrink-0, adjusted padding/size
               title={showDetails ? "Hide details" : "Show details"}
+              style={{ lineHeight: '1' }} // Helps with vertical alignment of the text icon
             >
-              <svg 
-                width="12" 
-                height="12" 
-                viewBox="0 0 24 24" 
-                fill="currentColor"
-                className={cn("transition-transform", showDetails && "rotate-180")}
-              >
-                <path d="M7 10l5 5 5-5z" />
-              </svg>
+              {showDetails ? "«" : "»"} {/* New text icons */}
             </button>
           )}
         </div>
