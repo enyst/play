@@ -3,7 +3,7 @@ import { Message, WebviewMessage, SocketMessage, StatusMessage, HealthCheckResul
 import { generateId } from "../../shared/utils";
 import { ChatInterface } from "./ChatInterface";
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
-import { isObservationMessage } from "../utils/typeGuards";
+import { isObservationMessage, isActionMessage } from "../utils/typeGuards";
 
 export function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -68,7 +68,22 @@ export function App() {
 
   const handleAgentResponse = (event: SocketMessage) => {
     console.log("[Webview] Processing agent event:", event);
-    
+
+    // Check if this is an echo of the last user message without a new thought
+    if (isActionMessage(event) && event.action === "message") {
+      const lastUserMessage = messages.filter(m => m.sender === "user").pop();
+      const agentContent = event.args?.content;
+      const agentThought = event.args?.thought;
+
+      // If the agent's message content is the same as the last user message,
+      // and there's no new thought, then it's a simple echo.
+      if (lastUserMessage && typeof agentContent === 'string' && agentContent === lastUserMessage.content && !agentThought) {
+        console.log("[Webview] Suppressing echo message from agent:", event);
+        // setIsLoading(false); // This is handled in the caller (handleMessage)
+        return; // Don't display this echo
+      }
+    }
+
     // For regular events, create a message that contains the raw event data
     // The EventMessage component will handle the proper rendering
     const eventMessage: Message = {
@@ -78,19 +93,19 @@ export function App() {
       timestamp: Date.now(),
       type: "action", // Mark as action type so we can handle it differently
     };
-    
+
     // Add the event data to the message for EventMessage component
     (eventMessage as any).eventData = event;
-    
+
     addMessage(eventMessage);
-    
+
     // Handle errors at the app level for the error state
     // Check for ErrorObservation (observation type "error")
     if (isObservationMessage(event) && event.observation === "error") {
       const errorMessage = event.content || event.message || "Agent error";
       setError(errorMessage);
     }
-    
+
     // Check for observations with error_id (indicates an error occurred)
     if (isObservationMessage(event) && typeof event.extras?.error_id === 'string' && event.extras.error_id) {
       const errorMessage = event.content || event.message || "Agent encountered an error";
