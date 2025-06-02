@@ -69,6 +69,38 @@ To package the extension for local installation:
 
 This will create an `openhands-tab-extension-X.X.X.vsix` file which can be installed in VS Code via "Extensions: Install from VSIX..."
 
+### Running the Extension in Development
+
+To build, watch for changes, and run the extension in a VS Code Extension Development Host:
+
+1.  **Build and Watch for Changes:**
+    Open a terminal in the extension's root directory (`openhands-tab/`) and run:
+    ```bash
+    npm run dev
+    ```
+    This command concurrently compiles and watches both the extension host code (TypeScript to JavaScript) and the webview code (React/TypeScript bundled by Vite). Keep this terminal running.
+
+2.  **Start the Extension Development Host:**
+    - Open the `openhands-tab` folder in your primary VS Code window.
+    - Navigate to "Run" > "Start Debugging", or choose the "OpenHands Tab" debug configuration
+    ```json
+    {
+      "type": "extensionHost",
+      "request": "launch",
+      "name": "Run Extension",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/extension/**/*.js"
+      ],
+      "preLaunchTask": "npm: compile"
+    }
+    ```
+    - This will open a new VS Code window (the "Extension Development Host") with the OpenHands Tab extension enabled and running.
+    - Changes you make to the source code will be automatically rebuilt by the `npm run dev` process, and you can reload the Extension Development Host window (Developer: Reload Window command) to see them.
+
 ## Project Structure
 
 ```
