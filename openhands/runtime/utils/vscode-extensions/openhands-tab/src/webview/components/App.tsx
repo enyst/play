@@ -69,18 +69,35 @@ export function App() {
   const handleAgentResponse = (event: SocketMessage) => {
     console.log("[Webview] Processing agent event:", event);
 
-    // Check if this is an echo of the last user message without a new thought
+    // TODO: clean up this weird hack, remove the echo
+    // Check if this is an echo of the last user message
     if (isActionMessage(event) && event.action === "message") {
       const lastUserMessage = messages.filter(m => m.sender === "user").pop();
-      const agentContent = event.args?.content;
-      const agentThought = event.args?.thought;
+      if (lastUserMessage) {
+        const userLastContent = lastUserMessage.content;
 
-      // If the agent's message content is the same as the last user message,
-      // and there's no new thought, then it's a simple echo.
-      if (lastUserMessage && typeof agentContent === 'string' && agentContent === lastUserMessage.content && !agentThought) {
-        console.log("[Webview] Suppressing echo message from agent:", event);
-        // setIsLoading(false); // This is handled in the caller (handleMessage)
-        return; // Don't display this echo
+        const agentThought = event.args?.thought;
+        // Determine what EventMessage.tsx would display as primary content if not a thought.
+        // For AssistantMessageAction, args.content is not standard, so we primarily check event.message.
+        const agentEffectiveMessage = event.message || ""; // Fallback to empty string if event.message is undefined
+
+        // Scenario 1: Agent's "thought" is an echo.
+        // EventMessage.tsx prioritizes displaying the thought.
+        if (typeof agentThought === 'string' && agentThought.trim() === userLastContent.trim()) {
+          // If the thought is an echo, we should suppress it,
+          // especially if the alternative (agentEffectiveMessage) is also an echo or empty.
+          if (agentEffectiveMessage.trim() === userLastContent.trim() || agentEffectiveMessage.trim() === "") {
+            console.log("[Webview] Suppressing echo message from agent (thought was an echo):", event);
+            return; // Don't display this echo
+          }
+        }
+
+        // Scenario 2: Agent's "effective message" (event.message) is an echo, AND there's no overriding (non-echoing) thought.
+        if ((!agentThought || (typeof agentThought === 'string' && agentThought.trim() === "")) &&
+            typeof agentEffectiveMessage === 'string' && agentEffectiveMessage.trim() === userLastContent.trim()) {
+          console.log("[Webview] Suppressing echo message from agent (effective message was an echo, no significant thought):", event);
+          return; // Don't display this echo
+        }
       }
     }
 
