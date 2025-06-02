@@ -166,7 +166,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     try {
       // If no conversation exists, create one
       if (!this.conversationId) {
-        await this.createConversation();
+        await this.createConversation(text);
       }
 
       // If socket service doesn't exist or conversation changed, create/update it
@@ -206,9 +206,9 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     this.postMessageToWebview({ type: "clearChat" });
   }
 
-  private async createConversation() {
+  private async createConversation(initialMessage: string) {
     try {
-      this.conversationId = await this.conversationService.createConversation();
+      this.conversationId = await this.conversationService.createConversation(initialMessage);
       console.log("Created conversation:", this.conversationId);
     } catch (error) {
       if (error instanceof Error && error.message === "SETTINGS_NOT_FOUND_ERROR") {
@@ -360,7 +360,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
 
     // Construct path to HTML template relative to extension root
     const templatePath = path.join(this.extensionUri.fsPath, 'src', 'extension', 'webview', 'template.html');
-    
+
     let htmlContent: string;
     try {
       htmlContent = fs.readFileSync(templatePath, 'utf-8');
