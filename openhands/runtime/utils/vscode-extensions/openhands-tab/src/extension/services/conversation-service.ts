@@ -13,10 +13,10 @@ export class ConversationService {
     this.serverUrl = serverUrl;
   }
 
-  async createConversation(): Promise<string> {
+  async createConversation(initialMessage: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const url = new URL("/api/conversations", this.serverUrl);
-      const postData = JSON.stringify({});
+      const postData = JSON.stringify({ initial_user_msg: initialMessage });
 
       const options = {
         hostname: url.hostname,
