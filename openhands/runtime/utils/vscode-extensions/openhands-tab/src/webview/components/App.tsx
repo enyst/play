@@ -114,6 +114,13 @@ export function App() {
     // Add the event data to the message for EventMessage component
     (eventMessage as any).eventData = event;
 
+    // Handle AgentStateChangeObservation to update status message
+    if (isObservationMessage(event) && event.observation === "agent_state_changed" && event.extras && typeof event.extras.agent_state === 'string') {
+      console.log("[Webview] Agent state changed:", event.extras.agent_state);
+      setStatusMessage(`Agent: ${event.extras.agent_state}`);
+      return; // Do not add to chat messages
+    }
+
     addMessage(eventMessage);
 
     // Handle errors at the app level for the error state
