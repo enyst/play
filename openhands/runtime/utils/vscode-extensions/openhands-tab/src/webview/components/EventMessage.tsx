@@ -132,8 +132,8 @@ export function EventMessage({ event }: EventMessageProps) {
 
       return (
         <GenericEventMessage
-          title={<span>⚡ Executed: <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">{command}</code></span>}
-          details="Command executed"
+          title="Run Command"
+          details={`Command: ${command}`}
         />
       );
     }
@@ -277,12 +277,40 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Generic observations
     const observationType = event.observation.toUpperCase();
-    const content = event.content || event.message || "";
+    // For 'run' observation, 'commandOutputForDetails' will be the command output for the collapsible details section,
+    // and 'event.message' will be the summary shown directly under the title.
+    // For other observations, 'genericDetails' is the primary detail for the collapsible section.
+    const commandOutputForDetails = event.content || "";
+    const genericDetails = event.content || event.message || "";
 
+    if (event.observation === "run") {
+      // Access .success using type assertion (event as any) only within this block
+      const runEventSuccess = (event as any).success;
+      const successState = runEventSuccess === true ? "success" : runEventSuccess === false ? "error" : "unknown";
+      // Suffix for the title, e.g., " (success)" or " (failure)"
+      const titleSuffix = runEventSuccess === true ? " (success)" : runEventSuccess === false ? " (failure)" : "";
+
+      return (
+        <GenericEventMessage
+          title={
+            <>
+              <div>{`Command Result${titleSuffix}`}</div>
+              {/* Display event.message as a non-collapsible summary if it exists */}
+              {event.message && <div className="text-xs text-[var(--vscode-descriptionForeground)] mt-1 font-normal">{event.message}</div>}
+            </>
+          }
+          details={commandOutputForDetails} // This is the full command output, e.g., ls result
+          success={successState} // This will show the ✓ or ✗ icon
+        />
+      );
+    }
+
+    // Fallback for other generic observations (e.g., BROWSE, RECALL)
+    // No success prop is passed as we don't assume 'success' exists on these types.
     return (
       <GenericEventMessage
-        title={`📋 ${observationType}`}
-        details={content}
+        title={observationType}
+        details={genericDetails}
       />
     );
   }
