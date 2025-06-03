@@ -29,14 +29,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
   };
 
   const getMessageStyles = () => {
-    const baseStyles = "relative max-w-[85%] p-3 rounded-lg break-words";
-    
+    const baseStyles = "relative w-full p-3 rounded-lg break-words";
+
     switch (message.sender) {
       case "user":
         return cn(
           baseStyles,
-          "self-end ml-auto",
-          "bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]"
+          "bg-[var(--vscode-list-inactiveSelectionBackground)]",
+          "border border-[var(--vscode-editorWidget-border)]",
         );
       case "assistant":
         switch (message.type) {
@@ -46,7 +46,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               "self-start mr-auto",
               "bg-[var(--vscode-inputValidation-errorBackground)]",
               "border border-[var(--vscode-inputValidation-errorBorder)]",
-              "text-[var(--vscode-inputValidation-errorForeground)]"
+              "text-[var(--vscode-inputValidation-errorForeground)]",
             );
           case "status":
             return cn(
@@ -55,14 +55,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
               "bg-[var(--vscode-editorInfo-background)]",
               "border border-[var(--vscode-editorInfo-border)]",
               "text-[var(--vscode-editorInfo-foreground)]",
-              "text-xs italic"
+              "text-xs italic",
             );
           default:
             return cn(
               baseStyles,
-              "self-start mr-auto",
               "bg-[var(--vscode-editorWidget-background)]",
-              "border border-[var(--vscode-editorWidget-border)]"
+              "border border-[var(--vscode-editorWidget-border)]",
             );
         }
       default:
@@ -80,9 +79,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <button
           className={cn(
             "absolute top-2 right-2 px-2 py-1 text-xs rounded transition-all",
-            "bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]",
-            "hover:bg-[var(--vscode-button-hoverBackground)] opacity-80 hover:opacity-100",
-            isCopied && "bg-[var(--vscode-charts-green)] text-white"
+            "bg-transparent text-[var(--vscode-button-foreground)]",
+            "hover:bg-transparent opacity-80 hover:opacity-100",
+            isCopied && "bg-[var(--vscode-charts-green)] text-white",
           )}
           onClick={handleCopyToClipboard}
           title={isCopied ? "Copied!" : "Copy message"}
@@ -105,15 +104,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   </code>
                 </pre>
               ) : (
-                <code className="bg-[var(--vscode-textCodeBlock-background)] border border-[var(--vscode-editorWidget-border)] rounded px-1 py-0.5 font-mono text-xs" {...props}>
+                <code
+                  className="bg-[var(--vscode-textCodeBlock-background)] border border-[var(--vscode-editorWidget-border)] rounded px-1 py-0.5 font-mono text-xs"
+                  {...props}
+                >
                   {children}
                 </code>
               );
             },
-            p: ({ children }) => (
-              <p className="mb-2 last:mb-0">{children}</p>
+            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+            ul: ({ children }) => (
+              <ul className="my-2 pl-5 list-disc">{children}</ul>
             ),
-            ul: ({ children }) => <ul className="my-2 pl-5 list-disc">{children}</ul>,
             ol: ({ children }) => (
               <ol className="my-2 pl-5 list-decimal">{children}</ol>
             ),
@@ -133,10 +135,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </ReactMarkdown>
       </div>
 
-      <div className={cn(
-        "text-xs text-[var(--vscode-descriptionForeground)] mt-1",
-        message.sender === "user" ? "text-left" : "text-right"
-      )}>
+      <div
+        className={cn(
+          "text-xs text-[var(--vscode-descriptionForeground)] mt-1",
+          message.sender === "user" ? "text-left" : "text-right",
+        )}
+      >
         {formatTimestamp(message.timestamp)}
       </div>
     </article>

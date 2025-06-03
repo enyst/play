@@ -24,7 +24,11 @@ export function useVSCodeAPI() {
 
   return {
     postMessage: (message: WebviewMessage) => {
-      console.log("[Webview] Sending message to extension:", message.type, message);
+      console.log(
+        "[Webview] Sending message to extension:",
+        message.type,
+        message,
+      );
       try {
         vscode.postMessage(message);
         console.log("[Webview] Message sent successfully");

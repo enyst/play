@@ -29,6 +29,7 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-top: 20px; /* Added to push content down from VS Code title bar */
 }
 
 /* Custom scrollbar styles for VSCode integration */

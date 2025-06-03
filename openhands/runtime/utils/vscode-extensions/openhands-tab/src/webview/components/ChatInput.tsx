@@ -60,7 +60,7 @@ export function ChatInput({
             "placeholder:text-[var(--vscode-input-placeholderForeground)]",
             "focus:border-[var(--vscode-focusBorder)] focus:outline-none",
             "resize-none transition-colors",
-            disabled && "opacity-60 cursor-not-allowed"
+            disabled && "opacity-60 cursor-not-allowed",
           )}
           rows={1}
         />
@@ -71,7 +71,8 @@ export function ChatInput({
             "px-3 py-2 rounded flex items-center justify-center min-w-[36px] h-[36px]",
             "bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]",
             "hover:bg-[var(--vscode-button-hoverBackground)] transition-colors",
-            (disabled || !message.trim()) && "opacity-50 cursor-not-allowed hover:bg-[var(--vscode-button-background)]"
+            (disabled || !message.trim()) &&
+              "opacity-50 cursor-not-allowed hover:bg-[var(--vscode-button-background)]",
           )}
           title="Send message (Enter)"
         >

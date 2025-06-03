@@ -52,13 +52,20 @@ export class ConversationService {
                 );
               }
             } catch (error) {
-              reject(new Error(`Failed to parse server response: ${error instanceof Error ? error.message : String(error)}`));
+              reject(
+                new Error(
+                  `Failed to parse server response: ${error instanceof Error ? error.message : String(error)}`,
+                ),
+              );
             }
           } else {
             if (res.statusCode === 400) {
               try {
                 const parsedBody = JSON.parse(responseBody);
-                if (parsedBody && parsedBody.msg_id === "CONFIGURATION$SETTINGS_NOT_FOUND") {
+                if (
+                  parsedBody &&
+                  parsedBody.msg_id === "CONFIGURATION$SETTINGS_NOT_FOUND"
+                ) {
                   reject(new Error("SETTINGS_NOT_FOUND_ERROR")); // Specific marker
                   return;
                 }
