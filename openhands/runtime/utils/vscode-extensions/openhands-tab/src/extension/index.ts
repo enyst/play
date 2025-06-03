@@ -5,7 +5,10 @@ export function activate(context: vscode.ExtensionContext) {
   try {
     console.log("OpenHands extension is now active!");
     console.log("Extension URI:", context.extensionUri.toString());
-    console.log("Registering webview provider for viewType:", OpenHandsViewProvider.viewType);
+    console.log(
+      "Registering webview provider for viewType:",
+      OpenHandsViewProvider.viewType,
+    );
 
     const provider = new OpenHandsViewProvider(context.extensionUri, context);
 

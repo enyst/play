@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 import { SocketService } from "./services/socket-service.js";
 import { ConversationService } from "./services/conversation-service.js";
 import { HealthService } from "./services/health-service.js";
-import { WebviewMessage, SocketMessage, StatusMessage } from "../shared/types";
+import { WebviewMessage, SocketMessage } from "../shared/types";
 
 export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "openhandsView";
@@ -20,6 +20,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
   private conversationId: string | null = null;
 
   private serverUrl: string;
+
   private healthCheckInterval?: NodeJS.Timeout;
 
   constructor(
@@ -34,9 +35,14 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
       console.log("[OpenHands Extension] Server URL:", this.serverUrl);
       this.conversationService = new ConversationService(this.serverUrl);
       this.healthService = new HealthService(this.serverUrl);
-      console.log("[OpenHands Extension] WebviewProvider constructor completed");
+      console.log(
+        "[OpenHands Extension] WebviewProvider constructor completed",
+      );
     } catch (error) {
-      console.error("[OpenHands Extension] Error in WebviewProvider constructor:", error);
+      console.error(
+        "[OpenHands Extension] Error in WebviewProvider constructor:",
+        error,
+      );
       throw error;
     }
   }
@@ -58,13 +64,15 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage(
       (message: WebviewMessage) => {
-        console.log("[OpenHands Extension] Raw message received:", JSON.stringify(message));
+        console.log(
+          "[OpenHands Extension] Raw message received:",
+          JSON.stringify(message),
+        );
         this.handleWebviewMessage(message);
       },
       undefined,
       this.context.subscriptions,
     );
-
 
     // Perform initial health check
     this.performHealthCheck();
@@ -75,10 +83,14 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     }
     this.healthCheckInterval = setInterval(() => {
       if (this.view && this.view.visible) {
-        console.log("[OpenHands Extension] Performing periodic health check (view visible).");
+        console.log(
+          "[OpenHands Extension] Performing periodic health check (view visible).",
+        );
         this.performHealthCheck();
       } else {
-        console.log("[OpenHands Extension] Skipping periodic health check (view not visible or disposed).");
+        console.log(
+          "[OpenHands Extension] Skipping periodic health check (view not visible or disposed).",
+        );
       }
     }, 60000); // 60 seconds
 
@@ -89,44 +101,61 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
         if (this.healthCheckInterval) {
           clearInterval(this.healthCheckInterval);
           this.healthCheckInterval = undefined;
-          console.log("[OpenHands Extension] Cleared health check interval on extension deactivation/dispose.");
+          console.log(
+            "[OpenHands Extension] Cleared health check interval on extension deactivation/dispose.",
+          );
         }
         if (this.socketService) {
           this.socketService.disconnect();
           this.socketService = undefined;
-          console.log("[OpenHands Extension] Disconnected socket service on extension deactivation/dispose.");
+          console.log(
+            "[OpenHands Extension] Disconnected socket service on extension deactivation/dispose.",
+          );
         }
-      })
+      }),
     );
 
     // Handle webview-specific disposal (e.g., when the view itself is closed by the user)
     webviewView.onDidDispose(
       () => {
-        console.log("[OpenHands Extension] Webview panel for OpenHandsViewProvider disposed.");
+        console.log(
+          "[OpenHands Extension] Webview panel for OpenHandsViewProvider disposed.",
+        );
         if (this.healthCheckInterval) {
           clearInterval(this.healthCheckInterval);
           this.healthCheckInterval = undefined;
-          console.log("[OpenHands Extension] Cleared health check interval due to webview disposal.");
+          console.log(
+            "[OpenHands Extension] Cleared health check interval due to webview disposal.",
+          );
         }
         if (this.socketService) {
           this.socketService.disconnect();
           this.socketService = undefined;
-          console.log("[OpenHands Extension] Disconnected socket service due to webview disposal.");
+          console.log(
+            "[OpenHands Extension] Disconnected socket service due to webview disposal.",
+          );
         }
         this.view = undefined; // Clear the view reference
       },
       null, // Using null for `thisArgs`
-      this.context.subscriptions // Add this disposable to the extension's subscriptions
+      this.context.subscriptions, // Add this disposable to the extension's subscriptions
     );
   }
 
   private async handleWebviewMessage(message: WebviewMessage) {
     if (!this.view) {
-      console.log("[OpenHands Extension] No view available for message:", message.type);
+      console.log(
+        "[OpenHands Extension] No view available for message:",
+        message.type,
+      );
       return;
     }
 
-    console.log("[OpenHands Extension] Received webview message:", message.type, message);
+    console.log(
+      "[OpenHands Extension] Received webview message:",
+      message.type,
+      message,
+    );
 
     try {
       switch (message.type) {
@@ -146,12 +175,20 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
           if (message.data && message.data.path) {
             await this.handleOpenFileRequest(message.data.path);
           } else {
-            console.warn("[OpenHands Extension] Received openFile request without a valid path.", message.data);
-            vscode.window.showWarningMessage("Could not open item: Path not provided.");
+            console.warn(
+              "[OpenHands Extension] Received openFile request without a valid path.",
+              message.data,
+            );
+            vscode.window.showWarningMessage(
+              "Could not open item: Path not provided.",
+            );
           }
           break;
         default:
-          console.log("[OpenHands Extension] Unknown message type:", message.type);
+          console.log(
+            "[OpenHands Extension] Unknown message type:",
+            message.type,
+          );
       }
     } catch (error) {
       console.error("[OpenHands Extension] Error handling message:", error);
@@ -178,10 +215,14 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
       // Send the message
       this.socketService!.sendMessage(text);
     } catch (error) {
-      if (error instanceof Error && error.message === "SETTINGS_NOT_FOUND_ERROR") {
+      if (
+        error instanceof Error &&
+        error.message === "SETTINGS_NOT_FOUND_ERROR"
+      ) {
         this.postMessageToWebview({
           type: "status", // Change type to "status"
-          message: "LLM settings not found. Please configure your LLM API key and model in the OpenHands settings.",
+          message:
+            "LLM settings not found. Please configure your LLM API key and model in the OpenHands settings.",
         });
       } else {
         this.postMessageToWebview({
@@ -208,10 +249,14 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
 
   private async createConversation(initialMessage: string) {
     try {
-      this.conversationId = await this.conversationService.createConversation(initialMessage);
+      this.conversationId =
+        await this.conversationService.createConversation(initialMessage);
       console.log("Created conversation:", this.conversationId);
     } catch (error) {
-      if (error instanceof Error && error.message === "SETTINGS_NOT_FOUND_ERROR") {
+      if (
+        error instanceof Error &&
+        error.message === "SETTINGS_NOT_FOUND_ERROR"
+      ) {
         throw error; // Re-throw the specific error marker
       }
       throw new Error(
@@ -287,34 +332,55 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-
   private async handleOpenFileRequest(itemPath: string) {
-    console.log(`[OpenHands Extension] Processing openFile request for: ${itemPath}`);
+    console.log(
+      `[OpenHands Extension] Processing openFile request for: ${itemPath}`,
+    );
     try {
       const itemStat = await fs.promises.stat(itemPath); // Renamed 'stat' to 'itemStat', now async
       if (itemStat.isDirectory()) {
-        console.log(`[OpenHands Extension] Path is a directory: ${itemPath}. Revealing in explorer.`);
+        console.log(
+          `[OpenHands Extension] Path is a directory: ${itemPath}. Revealing in explorer.`,
+        );
         const dirUri = vscode.Uri.file(itemPath);
         // Ensure explorer is visible and then reveal
-        await vscode.commands.executeCommand('workbench.view.explorer');
-        await vscode.commands.executeCommand('revealInExplorer', dirUri);
-        console.log(`[OpenHands Extension] Successfully revealed directory: ${itemPath}`);
+        await vscode.commands.executeCommand("workbench.view.explorer");
+        await vscode.commands.executeCommand("revealInExplorer", dirUri);
+        console.log(
+          `[OpenHands Extension] Successfully revealed directory: ${itemPath}`,
+        );
       } else if (itemStat.isFile()) {
-        console.log(`[OpenHands Extension] Path is a file: ${itemPath}. Opening in editor.`);
+        console.log(
+          `[OpenHands Extension] Path is a file: ${itemPath}. Opening in editor.`,
+        );
         const fileUri = vscode.Uri.file(itemPath);
         const document = await vscode.workspace.openTextDocument(fileUri);
         await vscode.window.showTextDocument(document);
-        console.log(`[OpenHands Extension] Successfully opened file: ${itemPath}`);
+        console.log(
+          `[OpenHands Extension] Successfully opened file: ${itemPath}`,
+        );
       } else {
-        console.warn(`[OpenHands Extension] Path is neither a file nor a directory: ${itemPath}`);
-        vscode.window.showWarningMessage(`Cannot open: ${itemPath} is not a file or directory.`);
+        console.warn(
+          `[OpenHands Extension] Path is neither a file nor a directory: ${itemPath}`,
+        );
+        vscode.window.showWarningMessage(
+          `Cannot open: ${itemPath} is not a file or directory.`,
+        );
       }
     } catch (error) {
-      console.error(`[OpenHands Extension] Error processing path ${itemPath}:`, error);
-      if (error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+      console.error(
+        `[OpenHands Extension] Error processing path ${itemPath}:`,
+        error,
+      );
+      if (
+        error instanceof Error &&
+        (error as NodeJS.ErrnoException).code === "ENOENT"
+      ) {
         vscode.window.showErrorMessage(`Path not found: ${itemPath}`);
       } else {
-        vscode.window.showErrorMessage(`Failed to process path: ${itemPath}. ${error instanceof Error ? error.message : ""}`);
+        vscode.window.showErrorMessage(
+          `Failed to process path: ${itemPath}. ${error instanceof Error ? error.message : ""}`,
+        );
       }
     }
   }
@@ -325,21 +391,23 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-
   private _getNonce(): string {
     return getNonce(); // Calls the existing global function
   }
 
-  private _getUri(webview: vscode.Webview, ...pathSegments: string[]): vscode.Uri {
+  private _getUri(
+    webview: vscode.Webview,
+    ...pathSegments: string[]
+  ): vscode.Uri {
     return webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, ...pathSegments),
     );
   }
 
   private _getCspDirectives(webview: vscode.Webview, nonce: string): string {
-    const cspSource = webview.cspSource; // e.g., vscode-webview-resource:
-    const serverHttpUrl = this.serverUrl.replace(/\/\/$/, ''); // Remove trailing slash
-    const serverWsUrl = serverHttpUrl.replace(/^http/, 'ws'); // http -> ws, https -> wss
+    const { cspSource } = webview; // e.g., vscode-webview-resource:
+    const serverHttpUrl = this.serverUrl.replace(/\/\/$/, ""); // Remove trailing slash
+    const serverWsUrl = serverHttpUrl.replace(/^http/, "ws"); // http -> ws, https -> wss
 
     // CSP Notes:
     // - connect-src is now dynamically set to the configured serverUrl and its WebSocket equivalent.
@@ -359,13 +427,23 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     const cspDirectives = this._getCspDirectives(webview, nonce);
 
     // Construct path to HTML template relative to extension root
-    const templatePath = path.join(this.extensionUri.fsPath, 'src', 'extension', 'webview', 'template.html');
+    const templatePath = path.join(
+      this.extensionUri.fsPath,
+      "src",
+      "extension",
+      "webview",
+      "template.html",
+    );
 
     let htmlContent: string;
     try {
-      htmlContent = fs.readFileSync(templatePath, 'utf-8');
+      htmlContent = fs.readFileSync(templatePath, "utf-8");
     } catch (error) {
-      console.error('[OpenHands Extension] Error reading HTML template:', templatePath, error);
+      console.error(
+        "[OpenHands Extension] Error reading HTML template:",
+        templatePath,
+        error,
+      );
       // Return a minimal HTML body with the error to ensure the webview doesn't stay blank
       // Also, log the path that was attempted to aid debugging.
       return `<html><body><p style="color:var(--vscode-editor-foreground); padding:20px;">Error loading webview content. Failed to read template file at: ${templatePath}. Error: ${error instanceof Error ? error.message : String(error)}</p></body></html>`;
@@ -376,13 +454,28 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     htmlContent = htmlContent.replace(/{{CSP_DIRECTIVES}}/g, cspDirectives);
     htmlContent = htmlContent.replace(/{{NONCE}}/g, nonce);
     htmlContent = htmlContent.replace(/{{SCRIPT_URI}}/g, scriptUri.toString());
-    htmlContent = htmlContent.replace(/{{STYLE_RESET_URI}}/g, styleResetUri.toString());
-    htmlContent = htmlContent.replace(/{{STYLE_VSCODE_URI}}/g, styleVSCodeUri.toString());
-    htmlContent = htmlContent.replace(/{{STYLE_CSS_URI}}/g, styleCssUri.toString());
+    htmlContent = htmlContent.replace(
+      /{{STYLE_RESET_URI}}/g,
+      styleResetUri.toString(),
+    );
+    htmlContent = htmlContent.replace(
+      /{{STYLE_VSCODE_URI}}/g,
+      styleVSCodeUri.toString(),
+    );
+    htmlContent = htmlContent.replace(
+      /{{STYLE_CSS_URI}}/g,
+      styleCssUri.toString(),
+    );
 
     // For the logged URIs in the template
-    htmlContent = htmlContent.replace(/{{SCRIPT_URI_LOG}}/g, scriptUri.toString());
-    htmlContent = htmlContent.replace(/{{STYLE_CSS_URI_LOG}}/g, styleCssUri.toString());
+    htmlContent = htmlContent.replace(
+      /{{SCRIPT_URI_LOG}}/g,
+      scriptUri.toString(),
+    );
+    htmlContent = htmlContent.replace(
+      /{{STYLE_CSS_URI_LOG}}/g,
+      styleCssUri.toString(),
+    );
 
     return htmlContent;
   }

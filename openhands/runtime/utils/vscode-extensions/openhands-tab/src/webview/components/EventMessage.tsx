@@ -3,7 +3,11 @@ import { SocketMessage } from "../../shared/types";
 import { ChatMessage } from "./ChatMessage";
 import { GenericEventMessage } from "./GenericEventMessage";
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
-import { isActionMessage, isObservationMessage, isStatusMessage } from "../utils/typeGuards";
+import {
+  isActionMessage,
+  isObservationMessage,
+  isStatusMessage,
+} from "../utils/typeGuards";
 
 interface EventMessageProps {
   event: SocketMessage;
@@ -16,8 +20,14 @@ export function EventMessage({ event }: EventMessageProps) {
   if (isActionMessage(event)) {
     // User messages and assistant messages
     if (event.action === "message") {
-      const content = typeof event.args?.content === 'string' ? event.args.content : event.message || "";
-      const thought = typeof event.args?.thought === 'string' ? event.args.thought : undefined;
+      const content =
+        typeof event.args?.content === "string"
+          ? event.args.content
+          : event.message || "";
+      const thought =
+        typeof event.args?.thought === "string"
+          ? event.args.thought
+          : undefined;
 
       // If there's a thought, show it as the main message
       if (thought) {
@@ -28,7 +38,7 @@ export function EventMessage({ event }: EventMessageProps) {
               content: thought,
               sender: "assistant",
               timestamp: Date.now(),
-              type: "message"
+              type: "message",
             }}
           />
         );
@@ -42,7 +52,7 @@ export function EventMessage({ event }: EventMessageProps) {
             content,
             sender: "assistant",
             timestamp: Date.now(),
-            type: "message"
+            type: "message",
           }}
         />
       );
@@ -50,7 +60,10 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Think actions - show as collapsible
     if (event.action === "think") {
-      const thought = typeof event.args?.thought === 'string' ? event.args.thought : event.message || "";
+      const thought =
+        typeof event.args?.thought === "string"
+          ? event.args.thought
+          : event.message || "";
       return (
         <GenericEventMessage
           title="🤔 Agent is thinking..."
@@ -61,21 +74,34 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Finish actions
     if (event.action === "finish") {
-      const finalThought = typeof event.args?.final_thought === 'string' ? event.args.final_thought : event.message || "";
-      const taskCompleted = typeof event.args?.task_completed === 'string' ? event.args.task_completed : "unknown";
+      const finalThought =
+        typeof event.args?.final_thought === "string"
+          ? event.args.final_thought
+          : event.message || "";
+      const taskCompleted =
+        typeof event.args?.task_completed === "string"
+          ? event.args.task_completed
+          : "unknown";
 
       return (
         <GenericEventMessage
           title={`✅ Task ${taskCompleted === "success" ? "completed successfully" : taskCompleted === "failure" ? "failed" : "partially completed"}`}
           details={finalThought}
-          success={taskCompleted === "success" ? "success" : taskCompleted === "failure" ? "error" : "unknown"}
+          success={
+            taskCompleted === "success"
+              ? "success"
+              : taskCompleted === "failure"
+                ? "error"
+                : "unknown"
+          }
         />
       );
     }
 
     // File operations - show name and open in VSCode
     if (event.action === "read") {
-      const path = typeof event.args?.path === 'string' ? event.args.path : "unknown file";
+      const path =
+        typeof event.args?.path === "string" ? event.args.path : "unknown file";
 
       const handleOpenFileClick = (filePath: string) => {
         if (filePath === "unknown file") return;
@@ -90,7 +116,11 @@ export function EventMessage({ event }: EventMessageProps) {
               <button
                 onClick={() => handleOpenFileClick(path)}
                 className="text-[var(--vscode-textLink-foreground)] hover:underline focus:outline-none disabled:opacity-50 disabled:no-underline"
-                title={path === "unknown file" ? "File path is unknown" : `Click to open ${path}`}
+                title={
+                  path === "unknown file"
+                    ? "File path is unknown"
+                    : `Click to open ${path}`
+                }
                 disabled={path === "unknown file"}
               >
                 <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">
@@ -105,10 +135,18 @@ export function EventMessage({ event }: EventMessageProps) {
     }
 
     if (event.action === "write") {
-      const path = typeof event.args?.path === 'string' ? event.args.path : "unknown file";
+      const path =
+        typeof event.args?.path === "string" ? event.args.path : "unknown file";
       return (
         <GenericEventMessage
-          title={<span>✏️ Wrote file: <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">{path}</code></span>}
+          title={
+            <span>
+              ✏️ Wrote file:{" "}
+              <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">
+                {path}
+              </code>
+            </span>
+          }
           details="File has been created/updated"
           success="success"
         />
@@ -116,10 +154,18 @@ export function EventMessage({ event }: EventMessageProps) {
     }
 
     if (event.action === "edit") {
-      const path = typeof event.args?.path === 'string' ? event.args.path : "unknown file";
+      const path =
+        typeof event.args?.path === "string" ? event.args.path : "unknown file";
       return (
         <GenericEventMessage
-          title={<span>✏️ Edited file: <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">{path}</code></span>}
+          title={
+            <span>
+              ✏️ Edited file:{" "}
+              <code className="font-mono text-xs bg-[var(--vscode-textCodeBlock-background)] px-1 rounded">
+                {path}
+              </code>
+            </span>
+          }
           details="File changes will be visible in VS Code editor"
           success="success"
         />
@@ -128,7 +174,10 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Command execution - show command only for VSCode integration later
     if (event.action === "run") {
-      const command = typeof event.args?.command === 'string' ? event.args.command : "unknown command";
+      const command =
+        typeof event.args?.command === "string"
+          ? event.args.command
+          : "unknown command";
 
       return (
         <GenericEventMessage
@@ -140,7 +189,8 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Python code execution
     if (event.action === "run_ipython") {
-      const code = typeof event.args?.code === 'string' ? event.args.code : "unknown code";
+      const code =
+        typeof event.args?.code === "string" ? event.args.code : "unknown code";
 
       return (
         <GenericEventMessage
@@ -152,10 +202,23 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Browse actions
     if (event.action === "browse") {
-      const url = typeof event.args?.url === 'string' ? event.args.url : "unknown URL";
+      const url =
+        typeof event.args?.url === "string" ? event.args.url : "unknown URL";
       return (
         <GenericEventMessage
-          title={<span>🌐 Browsed: <a href={url} className="text-[var(--vscode-textLink-foreground)] hover:underline" target="_blank" rel="noopener noreferrer">{url}</a></span>}
+          title={
+            <span>
+              🌐 Browsed:{" "}
+              <a
+                href={url}
+                className="text-[var(--vscode-textLink-foreground)] hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {url}
+              </a>
+            </span>
+          }
           details="Page loaded"
         />
       );
@@ -163,9 +226,14 @@ export function EventMessage({ event }: EventMessageProps) {
 
     // Recall actions
     if (event.action === "recall") {
-      const thoughtArg = typeof event.args?.thought === 'string' ? event.args.thought : null;
-      const queryArg = typeof event.args?.query === 'string' ? event.args.query : null;
-      const recallTypeArg = typeof event.args?.recall_type === 'string' ? event.args.recall_type : null;
+      const thoughtArg =
+        typeof event.args?.thought === "string" ? event.args.thought : null;
+      const queryArg =
+        typeof event.args?.query === "string" ? event.args.query : null;
+      const recallTypeArg =
+        typeof event.args?.recall_type === "string"
+          ? event.args.recall_type
+          : null;
 
       let detailsContent = "";
       if (thoughtArg) {
@@ -186,14 +254,25 @@ export function EventMessage({ event }: EventMessageProps) {
       // If detailsContent is still the generic "Agent is recalling information."
       // and no other specific arguments (query, type) were present,
       // provide a slightly more user-friendly default.
-      if (detailsContent === "Agent is recalling information." && !queryArg && !recallTypeArg) {
-          detailsContent = "Agent is attempting to recall relevant information or context based on the current conversation.";
+      if (
+        detailsContent === "Agent is recalling information." &&
+        !queryArg &&
+        !recallTypeArg
+      ) {
+        detailsContent =
+          "Agent is attempting to recall relevant information or context based on the current conversation.";
       }
 
       return (
         <GenericEventMessage
-          title={<span className="text-[var(--vscode-disabledForeground)]">Looking for context...</span>}
-          details={detailsContent + `\n\n**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``}
+          title={
+            <span className="text-[var(--vscode-disabledForeground)]">
+              Looking for context...
+            </span>
+          }
+          details={`${
+            detailsContent
+          }\n\n**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``}
         />
       );
     }
@@ -201,22 +280,28 @@ export function EventMessage({ event }: EventMessageProps) {
     // Handle system prompt
     if (event.action === "system") {
       // The primary content of the system message is in event.message
-      const systemPromptContent = typeof event.message === 'string'
-        ? event.message
-        : "System prompt content not found in event.message.";
+      const systemPromptContent =
+        typeof event.message === "string"
+          ? event.message
+          : "System prompt content not found in event.message.";
 
       // The event.args contains metadata like version, agent_class.
       // We'll include the full event in debug details.
-      const detailsWithDebug = systemPromptContent + `\n\n**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``;
+      const detailsWithDebug = `${
+        systemPromptContent
+      }\n\n**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``;
 
       return (
         <GenericEventMessage
-          title="System Message"
+          title={
+            <span className="text-[var(--vscode-disabledForeground)]">
+              System Message
+            </span>
+          }
           details={detailsWithDebug}
         />
       );
     }
-
   } // End of 'if (isActionMessage(event))' block
 
   // Handle ObservationMessage types
@@ -231,7 +316,7 @@ export function EventMessage({ event }: EventMessageProps) {
             content: errorContent,
             sender: "assistant",
             timestamp: Date.now(),
-            type: "error"
+            type: "error",
           }}
         />
       );
@@ -253,25 +338,31 @@ export function EventMessage({ event }: EventMessageProps) {
           if (Object.prototype.hasOwnProperty.call(event.extras, key)) {
             const value = event.extras[key];
             // Format values, ensuring objects/arrays are stringified
-            const formattedValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
-            detailsMarkdown += `- **${key}:** ${formattedValue.includes('\n') ? `\n  \`\`\`\n  ${formattedValue.replace(/^/gm, '  ')}\n  \`\`\`` : formattedValue}\n`;
-
+            const formattedValue =
+              typeof value === "object"
+                ? JSON.stringify(value, null, 2)
+                : String(value);
+            detailsMarkdown += `- **${key}:** ${formattedValue.includes("\n") ? `\n  \`\`\`\n  ${formattedValue.replace(/^/gm, "  ")}\n  \`\`\`` : formattedValue}\n`;
           }
         }
         detailsMarkdown += "\\n";
       } else {
-        detailsMarkdown += "**Details (from extras):** (No additional details provided)\n\n";
+        detailsMarkdown +=
+          "**Details (from extras):** (No additional details provided)\n\n";
       }
 
       detailsMarkdown += `**Debug Info (Full Event):**\n\`\`\`json\n${JSON.stringify(event, null, 2)}\n\`\`\``;
 
       return (
         <GenericEventMessage
-          title={<span className="text-[var(--vscode-disabledForeground)]">Context Retrieved</span>}
+          title={
+            <span className="text-[var(--vscode-disabledForeground)]">
+              Context Retrieved
+            </span>
+          }
           details={detailsMarkdown}
         />
       );
-
     }
 
     // Generic observations
@@ -285,9 +376,19 @@ export function EventMessage({ event }: EventMessageProps) {
     if (event.observation === "run") {
       // Access .success using type assertion (event as any) only within this block
       const runEventSuccess = (event as any).success;
-      const successState = runEventSuccess === true ? "success" : runEventSuccess === false ? "error" : "unknown";
+      const successState =
+        runEventSuccess === true
+          ? "success"
+          : runEventSuccess === false
+            ? "error"
+            : "unknown";
       // Suffix for the title, e.g., " (success)" or " (failure)"
-      const titleSuffix = runEventSuccess === true ? " (success)" : runEventSuccess === false ? " (failure)" : "";
+      const titleSuffix =
+        runEventSuccess === true
+          ? " (success)"
+          : runEventSuccess === false
+            ? " (failure)"
+            : "";
 
       return (
         <GenericEventMessage
@@ -295,7 +396,11 @@ export function EventMessage({ event }: EventMessageProps) {
             <>
               <div>{`Command Result${titleSuffix}`}</div>
               {/* Display event.message as a non-collapsible summary if it exists */}
-              {event.message && <div className="text-xs text-[var(--vscode-descriptionForeground)] mt-1 font-normal">{event.message}</div>}
+              {event.message && (
+                <div className="text-xs text-[var(--vscode-descriptionForeground)] mt-1 font-normal">
+                  {event.message}
+                </div>
+              )}
             </>
           }
           details={commandOutputForDetails} // This is the full command output, e.g., ls result
@@ -307,24 +412,30 @@ export function EventMessage({ event }: EventMessageProps) {
     // Fallback for other generic observations (e.g., BROWSE, RECALL)
     // No success prop is passed as we don't assume 'success' exists on these types.
     return (
-      <GenericEventMessage
-        title={observationType}
-        details={genericDetails}
-      />
+      <GenericEventMessage title={observationType} details={genericDetails} />
     );
   }
 
   // Fallback for unknown event types (StatusMessage or unknown)
-  const eventType = isActionMessage(event) ? event.action :
-                   isObservationMessage(event) ? event.observation :
-                   isStatusMessage(event) ? "status" : "unknown"; // Use type guard
+  const eventType = isActionMessage(event)
+    ? event.action
+    : isObservationMessage(event)
+      ? event.observation
+      : isStatusMessage(event)
+        ? "status"
+        : "unknown"; // Use type guard
   // For basicContent, if it's a StatusMessage, we want event.message.
   // If it's none of the known types but has a 'message' property, use that.
   // Otherwise, empty string.
-  const basicContent = isStatusMessage(event) ? event.message :
-                      isObservationMessage(event) ? (event.content || event.message) :
-                      isActionMessage(event) ? event.message :
-                      ("message" in event && typeof (event as any).message === 'string') ? (event as any).message : "";
+  const basicContent = isStatusMessage(event)
+    ? event.message
+    : isObservationMessage(event)
+      ? event.content || event.message
+      : isActionMessage(event)
+        ? event.message
+        : "message" in event && typeof (event as any).message === "string"
+          ? (event as any).message
+          : "";
   const jsonDebugInfo = JSON.stringify(event, null, 2);
 
   const debugDetails = basicContent
@@ -333,7 +444,11 @@ export function EventMessage({ event }: EventMessageProps) {
 
   return (
     <GenericEventMessage
-      title={`🔧 UNKNOWN: ${eventType.toUpperCase()}`}
+      title={
+        <span className="text-[var(--vscode-disabledForeground)]">
+          UNKNOWN: {eventType.toUpperCase()}
+        </span>
+      }
       details={debugDetails}
       success="error"
     />
