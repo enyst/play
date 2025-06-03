@@ -10,6 +10,6 @@
 
 // Mock scrollIntoView for JSDOM environment
 // FIXME: review this
-if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }

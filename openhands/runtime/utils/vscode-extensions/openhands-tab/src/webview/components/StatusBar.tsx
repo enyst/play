@@ -28,16 +28,29 @@ export function StatusBar({
         <div className="flex items-center gap-3">
           {/* Connection Status */}
           <div className="flex items-center gap-1.5 text-xs">
-            <div className={cn("w-2 h-2 rounded-full", getStatusDotColor(isConnected))} />
+            <div
+              className={cn(
+                "w-2 h-2 rounded-full",
+                getStatusDotColor(isConnected),
+              )}
+            />
             <span>{isConnected ? "Connected" : "Disconnected"}</span>
           </div>
 
           {/* Server Health Status */}
           <div className="flex items-center gap-1.5 text-xs">
-            <div className={cn("w-2 h-2 rounded-full", getStatusDotColor(serverHealthy))} />
+            <div
+              className={cn(
+                "w-2 h-2 rounded-full",
+                getStatusDotColor(serverHealthy),
+              )}
+            />
             <span>
-              {serverHealthy === null ? "Checking..." :
-               serverHealthy ? "Server OK" : "Server Down"}
+              {serverHealthy === null
+                ? "Checking..."
+                : serverHealthy
+                  ? "Server OK"
+                  : "Server Down"}
             </span>
           </div>
         </div>
@@ -49,7 +62,7 @@ export function StatusBar({
             className={cn(
               "flex items-center gap-1 px-2 py-1 text-xs rounded",
               "bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)]",
-              "hover:bg-[var(--vscode-button-hoverBackground)] transition-colors"
+              "hover:bg-[var(--vscode-button-hoverBackground)] transition-colors",
             )}
             title="New Conversation"
           >
