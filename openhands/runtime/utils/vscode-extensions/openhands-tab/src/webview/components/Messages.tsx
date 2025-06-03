@@ -23,7 +23,7 @@ export function Messages({ messages }: MessagesProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3 pt-1">
+    <div className="flex flex-col gap-5 pt-1">
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}

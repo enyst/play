@@ -16,6 +16,7 @@ interface EventMessageProps {
 export function EventMessage({ event }: EventMessageProps) {
   const vscode = useVSCodeAPI();
 
+  const COMMAND_PRE_CLASSNAME = "bg-[var(--vscode-textCodeBlock-background)] border border-[var(--vscode-editorWidget-border)] rounded p-1 font-mono text-xs overflow-x-auto whitespace-pre-wrap break-all";
   // Handle ActionMessage types
   if (isActionMessage(event)) {
     // User messages and assistant messages
@@ -172,17 +173,26 @@ export function EventMessage({ event }: EventMessageProps) {
       );
     }
 
-    // Command execution - show command only for VSCode integration later
+    // Command execution - show command by default, formatted as markdown
     if (event.action === "run") {
       const command =
         typeof event.args?.command === "string"
           ? event.args.command
           : "unknown command";
+      // Construct the <pre> element for the command details
+      const commandDetailsPre = (
+        <pre
+          className={COMMAND_PRE_CLASSNAME}
+        >
+          {command}
+        </pre>
+      );
 
       return (
         <GenericEventMessage
-          title="Run Command"
-          details={`Command: ${command}`}
+          title="⚡ Run Command"
+          details={commandDetailsPre}
+          startExpanded={true} // Default to expanded
         />
       );
     }
@@ -395,12 +405,39 @@ export function EventMessage({ event }: EventMessageProps) {
           title={
             <>
               <div>{`Command Result${titleSuffix}`}</div>
-              {/* Display event.message as a non-collapsible summary if it exists */}
-              {event.message && (
-                <div className="text-xs text-[var(--vscode-descriptionForeground)] mt-1 font-normal">
-                  {event.message}
-                </div>
-              )}
+              {(() => {
+                // This IIFE allows for variable declarations and logic within JSX for this section.
+                const command = event.extras?.command || "unknown command";
+                let exitCodeMessage = "";
+
+                if (event.message) { // event.message contains the "executed with exit code `X`" part
+                  const match = event.message.match(/executed with exit code `(.*?)`/);
+                  if (match && match[1]) {
+                    exitCodeMessage = `Executed with exit code \`${match[1]}\``;
+                  } else {
+                    // Fallback based on the success state if parsing event.message fails
+                    // (event as any).success is true for exit code 0, false otherwise.
+                    exitCodeMessage = (event as any).success === true ? "Executed successfully (exit code 0)" : ((event as any).success === false ? "Execution failed (non-zero exit code)" : "Execution status unknown");
+                  }
+                }
+
+                // Only render this detailed summary if event.message was present,
+                // indicating the command has finished and reported.
+                if (event.message) {
+                  return (
+                    <div className="text-xs text-[var(--vscode-descriptionForeground)] mt-1 font-normal space-y-1"> {/* space-y-1 for small gap between lines */}
+                      <div>Command:</div>
+                      <pre
+                        className={COMMAND_PRE_CLASSNAME}
+                      >
+                        {String(command)}
+                      </pre>
+                      <div>{exitCodeMessage}</div>
+                    </div>
+                  );
+                }
+                return null; // Don't render this block if event.message is not available
+              })()}
             </>
           }
           details={commandOutputForDetails} // This is the full command output, e.g., ls result

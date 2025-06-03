@@ -6,14 +6,16 @@ interface GenericEventMessageProps {
   title: React.ReactNode;
   details: string | React.ReactNode;
   success?: "success" | "error" | "unknown";
+  startExpanded?: boolean;
 }
 
 export function GenericEventMessage({
   title,
   details,
   success,
+  startExpanded, // New prop
 }: GenericEventMessageProps) {
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(startExpanded || false);
 
   const getSuccessIndicator = () => {
     if (!success) return null;
