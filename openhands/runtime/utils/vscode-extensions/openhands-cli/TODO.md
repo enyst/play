@@ -7,9 +7,9 @@
 - [x] Add a command-line argument to the CLI (e.g., `--sse-port`) to specify the port for this SSE server.
 
 ## Phase 2: Create the VS Code Extension PoC
-- [ ] Create the basic structure for the VS Code extension in `/Users/enyst/repos/play/openhands/runtime/utils/vscode-extensions/openhands-cli`.
+- [x] Create the basic structure for the VS Code extension in `/Users/enyst/repos/play/openhands/runtime/utils/vscode-extensions/openhands-cli`.
 - [ ] The extension will:
-    - [ ] Provide a command (e.g., "Start OpenHands CLI Session").
-    - [ ] When triggered, it will spawn the `openhands` CLI process, passing the `--sse-port` argument.
-    - [ ] Connect to the CLI's SSE endpoint (`http://localhost:<port>/stream`).
-    - [ ] Listen for events and, for this PoC, log them to the VS Code debug console or display them as simple notifications.
+    - [x] Provide a command (e.g., "Start OpenHands CLI Session").
+    - [x] When triggered, it will spawn the `openhands` CLI process, passing the `--sse-port` argument.
+    - [x] Connect to the CLI's SSE endpoint (`http://localhost:<port>/stream`).
+    - [x] Listen for events and, for this PoC, log them to the VS Code debug console or display them as simple notifications.
