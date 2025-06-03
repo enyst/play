@@ -198,9 +198,8 @@ export function EventMessage({ event }: EventMessageProps) {
       );
     }
 
-    // Handle system prompt (action: "system_message_set")
-    // FIXME: this is hallucination!
-    if (event.action === "system_message_set") {
+    // Handle system prompt
+    if (event.action === "system") {
       // The primary content of the system message is in event.message
       const systemPromptContent = typeof event.message === 'string'
         ? event.message
