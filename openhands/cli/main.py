@@ -1,9 +1,14 @@
 import asyncio
+import json
 import logging
 import os
 import sys
+from dataclasses import asdict
 
+import uvicorn
+from fastapi import FastAPI
 from prompt_toolkit.shortcuts import clear
+from sse_starlette.sse import EventSourceResponse
 
 import openhands.agenthub  # noqa F401 (we import this to get the agents registered)
 from openhands.cli.commands import (
@@ -66,11 +71,45 @@ from openhands.runtime.base import Runtime
 from openhands.storage.settings.file_settings_store import FileSettingsStore
 
 
+# Global SSE Event Stream
+class SSEEventStream:
+    def __init__(self):
+        self.listeners: list[asyncio.Queue] = []
+
+    async def publish(self, event: dict):
+        # Convert event to JSON string if it's not already
+        event_json = json.dumps(event)
+        for queue in self.listeners:
+            await queue.put(event_json)
+
+    async def subscribe(self):
+        queue: asyncio.Queue[str] = asyncio.Queue()
+        self.listeners.append(queue)
+        try:
+            while True:
+                yield await queue.get()
+        finally:
+            if (
+                queue in self.listeners
+            ):  # Check if queue is still in listeners before removing
+                self.listeners.remove(queue)
+
+
+sse_event_stream_singleton = SSEEventStream()
+app = FastAPI()
+
+
+@app.get('/stream')
+async def sse_stream_endpoint():  # Renamed to avoid conflict with variable name
+    return EventSourceResponse(sse_event_stream_singleton.subscribe())
+
+
 async def cleanup_session(
     loop: asyncio.AbstractEventLoop,
     agent: Agent,
     runtime: Runtime,
     controller: AgentController,
+    sse_server_task: asyncio.Task | None,
 ) -> None:
     """Clean up all resources from the current session."""
 
@@ -83,6 +122,23 @@ async def cleanup_session(
     )
 
     try:
+        if sse_server_task and not sse_server_task.done():
+            logger.info('Attempting to cancel SSE server task in cleanup_session...')
+            sse_server_task.cancel()
+            try:
+                await sse_server_task  # Allow cancellation to propagate
+            except asyncio.CancelledError:
+                logger.info(
+                    'SSE server task successfully cancelled in cleanup_session.'
+                )
+            except (
+                Exception
+            ) as e_sse_cancel:  # Catch any other exception during cancellation
+                logger.error(
+                    f'Error cancelling SSE server task in cleanup_session: {e_sse_cancel}'
+                )
+            finally:
+                sse_server_task = None  # Reset the global variable
         current_task = asyncio.current_task(loop)
         pending = [task for task in asyncio.all_tasks(loop) if task is not current_task]
 
@@ -109,6 +165,7 @@ async def run_session(
     task_content: str | None = None,
     conversation_instructions: str | None = None,
     session_name: str | None = None,
+    sse_server_task: asyncio.Task | None = None,
 ) -> bool:
     reload_microagents = False
     new_session_requested = False
@@ -117,6 +174,25 @@ async def run_session(
     is_loaded = asyncio.Event()
     is_paused = asyncio.Event()  # Event to track agent pause requests
     always_confirm_mode = False  # Flag to enable always confirm mode
+
+    if (
+        config.sse_port is not None and sse_server_task is None
+    ):  # Start only if port is set and not already running
+        logger.info(f'Starting SSE server on port {config.sse_port}')
+        uvicorn_config = uvicorn.Config(
+            app, host='0.0.0.0', port=config.sse_port, log_level='warning'
+        )  # Using warning to reduce noise
+        server = uvicorn.Server(uvicorn_config)
+        # Start Uvicorn in a separate task
+        sse_server_task = loop.create_task(server.serve())
+        # Add a small delay to allow the server to start. This is a simple approach.
+        # A more robust solution might involve the server signaling its readiness.
+        await asyncio.sleep(0.5)  # Give Uvicorn a moment to start
+        logger.info(f'SSE server should be running on port {config.sse_port}')
+    elif config.sse_port is not None and sse_server_task is not None:
+        logger.info(
+            f'SSE server already running or requested on port {config.sse_port}'
+        )
 
     # Show runtime initialization message
     display_runtime_initialization_message(config.runtime)
@@ -175,6 +251,7 @@ async def run_session(
 
     async def on_event_async(event: Event) -> None:
         nonlocal reload_microagents, is_paused, always_confirm_mode
+        await sse_event_stream_singleton.publish(asdict(event))
         display_event(event, config)
         update_usage_metrics(event, usage_metrics)
 
@@ -322,13 +399,14 @@ async def run_session(
         controller, runtime, memory, [AgentState.STOPPED, AgentState.ERROR]
     )
 
-    await cleanup_session(loop, agent, runtime, controller)
+    await cleanup_session(loop, agent, runtime, controller, sse_server_task)
 
     return new_session_requested
 
 
 async def main(loop: asyncio.AbstractEventLoop) -> None:
     """Runs the agent in CLI mode."""
+    sse_server_task: asyncio.Task | None = None
     args = parse_arguments()
 
     logger.setLevel(logging.WARNING)
@@ -410,12 +488,18 @@ async def main(loop: asyncio.AbstractEventLoop) -> None:
         current_dir,
         task_str,
         session_name=args.name,
+        sse_server_task=sse_server_task,
     )
 
     # If a new session was requested, run it
     while new_session_requested:
         new_session_requested = await run_session(
-            loop, config, settings_store, current_dir, None
+            loop,
+            config,
+            settings_store,
+            current_dir,
+            None,
+            sse_server_task=sse_server_task,
         )
 
 
