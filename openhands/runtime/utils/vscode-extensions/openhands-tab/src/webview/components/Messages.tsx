@@ -9,7 +9,7 @@ interface MessagesProps {
 export function Messages({ messages }: MessagesProps) {
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-center">
+      <div className="h-full flex items-center justify-center text-center">
         <div className="space-y-2">
           <h3 className="text-base font-medium text-[var(--vscode-editor-foreground)]">
             Welcome to OpenHands
@@ -23,7 +23,7 @@ export function Messages({ messages }: MessagesProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 pt-1">
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}

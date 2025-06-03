@@ -17,16 +17,17 @@ export class HealthService {
         signal: AbortSignal.timeout(5000), // 5 second timeout
       });
 
-      console.log(`Health check response: ${response.status} ${response.statusText}`);
+      console.log(
+        `Health check response: ${response.status} ${response.statusText}`,
+      );
 
       if (response.ok) {
         return { isHealthy: true };
-      } else {
-        return {
-          isHealthy: false,
-          error: `Server responded with status ${response.status}`,
-        };
       }
+      return {
+        isHealthy: false,
+        error: `Server responded with status ${response.status}`,
+      };
     } catch (error) {
       console.error("Health check error:", error);
       if (error instanceof Error) {
