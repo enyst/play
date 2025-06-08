@@ -227,6 +227,69 @@ async def search_conversations(
     return result
 
 
+@app.get('/conversations/recent')
+async def get_recent_conversations(
+    conversation_store: ConversationStore = Depends(get_conversation_store),
+) -> ConversationInfoResultSet:
+    """Get the 3 most recent conversations."""
+    try:
+        conversation_metadata_result_set = await conversation_store.search(
+            page_id=None, limit=3
+        )
+
+        # Filter out conversations older than max_age
+        now = datetime.now(timezone.utc)
+        max_age = config.conversation_max_age_seconds
+        filtered_results = [
+            conversation
+            for conversation in conversation_metadata_result_set.results
+            if hasattr(conversation, 'created_at')
+            and (
+                now - conversation.created_at.replace(tzinfo=timezone.utc)
+            ).total_seconds()
+            <= max_age
+        ]
+
+        conversation_ids = set(
+            conversation.conversation_id for conversation in filtered_results
+        )
+        connection_ids_to_conversation_ids = (
+            await conversation_manager.get_connections(
+                filter_to_sids=conversation_ids
+            )
+        )
+        agent_loop_info = await conversation_manager.get_agent_loop_info(
+            filter_to_sids=conversation_ids
+        )
+        agent_loop_info_by_conversation_id = {
+            info.conversation_id: info for info in agent_loop_info
+        }
+        result = ConversationInfoResultSet(
+            results=await wait_all(
+                _get_conversation_info(
+                    conversation=conversation,
+                    num_connections=sum(
+                        1
+                        for conversation_id_val in connection_ids_to_conversation_ids.values()
+                        if conversation_id_val == conversation.conversation_id
+                    ),
+                    agent_loop_info=agent_loop_info_by_conversation_id.get(
+                        conversation.conversation_id
+                    ),
+                )
+                for conversation in filtered_results
+            ),
+            next_page_id=None,  # No next page for recent conversations
+        )
+        return result
+    except Exception as e:
+        logger.error(f'Error fetching recent conversations: {str(e)}')
+        # Consider returning a proper HTTP error response
+        # For now, returning an empty set or raising simplifies, but
+        # depending on client expectations, a 500 error might be better.
+        return ConversationInfoResultSet(results=[], next_page_id=None)
+
+
 @app.get('/conversations/{conversation_id}')
 async def get_conversation(
     conversation_id: str,

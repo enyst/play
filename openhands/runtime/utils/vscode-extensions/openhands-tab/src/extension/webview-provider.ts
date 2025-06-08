@@ -184,6 +184,63 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
             );
           }
           break;
+        // New cases for recent conversations feature
+        case "getRecentConversations":
+          try {
+            const conversations = await this.conversationService.fetchRecentConversations();
+            this.postMessageToWebview({
+              type: "recentConversationsResponse",
+              data: conversations,
+            });
+          } catch (err) {
+            this.postMessageToWebview({
+              type: "recentConversationsError",
+              error: err instanceof Error ? err.message : "Failed to fetch recent conversations",
+            });
+          }
+          break;
+        case "loadConversation":
+          if (message.data && message.data.conversationId) {
+            // 1. Clear current chat state and disconnect old socket if any
+            await this.startNewConversation(); // This sends 'clearChat' to webview
+
+            // 2. Set the new conversation ID
+            this.conversationId = message.data.conversationId;
+            console.log(`[OpenHands Extension] Switched to conversationId: ${this.conversationId}`);
+
+            // 3. Inform webview that loading is in progress
+            // App.tsx already handles UI changes like clearing messages and setting loading state
+            // on its side when handleSelectConversation is triggered.
+            // We could send an explicit status update if needed:
+            // this.postMessageToWebview({
+            //   type: "statusUpdate",
+            //   data: { message: `Loading conversation ${this.conversationId.substring(0,8)}...` },
+            // });
+
+            // 4. The webview will typically show a loading state.
+            // The actual conversation messages would be sent by the backend
+            // once the SocketService connects with this new conversationId.
+            // If a user sends a message, handleUserPrompt will ensure socketService is created and connected.
+            // For a more proactive load, we might need to explicitly connect the socket here.
+            if (!this.socketService || !this.socketService.isConnected()) {
+                this.createSocketService(); // Will use the new this.conversationId
+                this.socketService!.connect();
+            } else {
+                // If socket service exists and is connected, it might be for a different session.
+                // It should be disconnected and reconnected with the new ID.
+                // startNewConversation already handles disconnection.
+                this.createSocketService();
+                this.socketService!.connect();
+            }
+
+          } else {
+            console.warn("[OpenHands Extension] loadConversation message missing conversationId", message.data);
+            this.postMessageToWebview({
+              type: "error",
+              message: "Cannot load conversation: conversationId not provided.",
+            });
+          }
+          break;
         default:
           console.log(
             "[OpenHands Extension] Unknown message type:",

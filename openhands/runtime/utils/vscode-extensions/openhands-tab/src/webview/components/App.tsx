@@ -5,19 +5,37 @@ import {
   SocketMessage,
   StatusMessage,
   HealthCheckResult,
+  // Assuming Conversation type might eventually be here or in a more specific import
 } from "../../shared/types";
 import { generateId } from "../../shared/utils";
 import { ChatInterface } from "./ChatInterface";
+import RecentConversationsList from './RecentConversationsList'; // Import new component
 import { useVSCodeAPI } from "../hooks/useVSCodeAPI";
 import { isObservationMessage, isActionMessage } from "../utils/typeGuards";
+
+// Define Conversation type locally for now, ideally from shared/types
+interface Conversation {
+  id: string;
+  title: string;
+  lastUpdatedAt: string; // ISO string format
+  snippet?: string;
+}
+
+export type View = 'chat' | 'recentConversations';
 
 export function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false); // For chat loading
+  const [error, setError] = useState<string | null>(null); // For general/chat errors
   const [serverHealthy, setServerHealthy] = useState<boolean | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // New state variables for recent conversations view
+  const [currentView, setCurrentView] = useState<View>('recentConversations');
+  const [recentConversations, setRecentConversations] = useState<Conversation[]>([]);
+  const [isLoadingRecentConversations, setIsLoadingRecentConversations] = useState<boolean>(false);
+  const [recentConversationsError, setRecentConversationsError] = useState<string | null>(null);
 
   const vscode = useVSCodeAPI();
 
@@ -65,6 +83,22 @@ export function App() {
         case "healthCheck":
           handleHealthCheck(message.data);
           break;
+        // New cases for recent conversations
+        case "recentConversationsResponse":
+          if (Array.isArray(message.data)) {
+            setRecentConversations(message.data as Conversation[]);
+          } else {
+            console.warn("[Webview] recentConversationsResponse data is not an array:", message.data);
+            setRecentConversations([]); // Set to empty array if data is invalid
+          }
+          setIsLoadingRecentConversations(false);
+          setRecentConversationsError(null);
+          break;
+        case "recentConversationsError":
+          setRecentConversationsError(message.error || "Failed to load recent conversations.");
+          setIsLoadingRecentConversations(false);
+          setRecentConversations([]);
+          break;
         default:
           console.warn("[Webview] Unknown message type:", message.type);
           break;
@@ -73,7 +107,17 @@ export function App() {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, []); // Empty dependency array, runs once
+
+  // Effect to fetch recent conversations when view changes
+  useEffect(() => {
+    if (currentView === 'recentConversations') {
+      console.log("[Webview] Current view is recentConversations, fetching list...");
+      setIsLoadingRecentConversations(true);
+      setRecentConversationsError(null);
+      vscode.postMessage({ type: "getRecentConversations" });
+    }
+  }, [currentView, vscode]); // Add vscode to dependencies if its reference can change, though unlikely
 
   const handleAgentResponse = (event: SocketMessage) => {
     console.log("[Webview] Processing agent event:", event);
@@ -243,18 +287,125 @@ export function App() {
     vscode.postMessage({
       type: "startNewConversation",
     });
+    setMessages([]); // Clear existing messages for the new chat
+    setError(null);
+    setStatusMessage("Starting new conversation...");
+    setIsLoading(true); // Indicate loading for the new chat session
+    setCurrentView('chat'); // Switch to chat view
   };
 
+  // Handler for selecting a conversation from the recent list
+  const handleSelectConversation = (conversationId: string) => {
+    console.log("[Webview] Selecting conversation:", conversationId);
+    vscode.postMessage({
+      type: "loadConversation",
+      data: { conversationId },
+    });
+    setMessages([]); // Clear messages from previous conversation
+    setError(null);
+    setStatusMessage(`Loading conversation: ${conversationId.substring(0, 8)}...`);
+    setIsLoading(true); // Indicate loading for the selected conversation
+    setCurrentView('chat');
+  };
+
+  // Handler for the "Start New Conversation" button in the empty state of RecentConversationsList
+  const handleStartNewConversationFromRecent = () => {
+    console.log("[Webview] Starting new conversation from recent list empty state");
+    handleStartNewConversation(); // Reuse existing logic
+    // currentView is already set to 'chat' by handleStartNewConversation
+  };
+
+  // Handlers for top navigation buttons
+  const handleNavigateToChat = () => {
+    // If already in chat view and want a *new* session, call handleStartNewConversation
+    // If simply switching to an existing chat session (not fully implemented here, as chat loads on select)
+    // then just setCurrentView might be enough, but for "New Chat" button, starting fresh is good.
+    handleStartNewConversation();
+  };
+
+  const handleNavigateToRecent = () => {
+    setCurrentView('recentConversations');
+    // The useEffect for currentView will trigger fetching recent conversations
+  };
+
+  // Main render structure
   return (
-    <ChatInterface
-      messages={messages}
-      isConnected={isConnected}
-      isLoading={isLoading}
-      error={error}
-      serverHealthy={serverHealthy}
-      statusMessage={statusMessage}
-      onSendMessage={handleSendMessage}
-      onStartNewConversation={handleStartNewConversation}
-    />
+    <div className="flex flex-col h-screen bg-vscode-editor-background text-vscode-editor-foreground">
+      {/* Navigation Header */}
+      <div className="p-2 border-b border-vscode-editorWidget-border bg-vscode-sideBar-background flex justify-start space-x-2">
+        <button
+          onClick={handleNavigateToChat}
+          disabled={currentView === 'chat' && isLoading} // Disable if in chat view and chat is loading
+          className={`px-3 py-1 text-sm rounded focus:outline-none transition-colors
+            ${currentView === 'chat' && !isLoading ? 'bg-vscode-button-background text-vscode-button-foreground hover:bg-vscode-button-hoverBackground'
+                                  : 'bg-vscode-button-secondaryBackground text-vscode-button-secondaryForeground hover:bg-vscode-button-secondaryHoverBackground'}
+            disabled:opacity-50`}
+        >
+          New Chat (+)
+        </button>
+        <button
+          onClick={handleNavigateToRecent}
+          disabled={currentView === 'recentConversations' && isLoadingRecentConversations}
+          className={`px-3 py-1 text-sm rounded focus:outline-none transition-colors
+            ${currentView === 'recentConversations' && !isLoadingRecentConversations ? 'bg-vscode-button-background text-vscode-button-foreground hover:bg-vscode-button-hoverBackground'
+                                      : 'bg-vscode-button-secondaryBackground text-vscode-button-secondaryForeground hover:bg-vscode-button-secondaryHoverBackground'}
+            disabled:opacity-50`}
+        >
+          Recent (🕒)
+        </button>
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-grow overflow-y-auto">
+        {currentView === 'recentConversations' && (() => {
+          if (isLoadingRecentConversations) {
+            return <div className="p-4 text-center">Loading recent conversations...</div>;
+          }
+          if (recentConversationsError) {
+            return (
+              <div className="p-4 text-center text-red-400">
+                <p>Error: {recentConversationsError}</p>
+                <button
+                  onClick={() => vscode.postMessage({ type: "getRecentConversations" })}
+                  className="mt-2 bg-[var(--vscode-button-background)] hover:bg-[var(--vscode-button-hoverBackground)] text-[var(--vscode-button-foreground)] font-semibold py-1 px-3 rounded text-sm focus:outline-[var(--vscode-focusBorder)]"
+                >
+                  Retry
+                </button>
+              </div>
+            );
+          }
+          return (
+            <RecentConversationsList
+              conversations={recentConversations}
+              onSelectConversation={handleSelectConversation}
+              onStartNewConversation={handleStartNewConversationFromRecent}
+            />
+          );
+        })()}
+
+        {currentView === 'chat' && (
+          <ChatInterface
+            messages={messages}
+            isConnected={isConnected}
+            isLoading={isLoading}
+            error={error}
+            serverHealthy={serverHealthy}
+            statusMessage={statusMessage}
+            onSendMessage={handleSendMessage}
+            onStartNewConversation={handleStartNewConversation}
+          />
+        )}
+      </div>
+    </div>
   );
+
+  // Original conditional rendering logic commented out for replacement with the above structure
+  /*
+  if (currentView === 'recentConversations') {
+    if (isLoadingRecentConversations) {
+      return <div className="p-4 text-center text-white">Loading recent conversations...</div>;
+    }
+    // ... (rest of the original conditional rendering, now part of the new structure) ...
+  }
+  */
 }

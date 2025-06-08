@@ -7,7 +7,10 @@ import { DocsButton } from "#/components/shared/buttons/docs-button";
 import { NewProjectButton } from "#/components/shared/buttons/new-project-button";
 import { SettingsButton } from "#/components/shared/buttons/settings-button";
 import { ConversationPanelButton } from "#/components/shared/buttons/conversation-panel-button";
+import { Link } from "react-router-dom";
 import { SettingsModal } from "#/components/shared/modals/settings/settings-modal";
+import PlusIcon from "#/icons/plus.svg"; // Import Plus icon
+import MessageIcon from "#/icons/message.svg"; // Import Message icon as substitute for Clock
 import { useSettings } from "#/hooks/query/use-settings";
 import { ConversationPanel } from "../conversation-panel/conversation-panel";
 import { ConversationPanelWrapper } from "../conversation-panel/conversation-panel-wrapper";
@@ -69,6 +72,31 @@ export function Sidebar() {
             <div className="flex items-center justify-center">
               <AllHandsLogoButton />
             </div>
+            {/* New Conversation Button */}
+            <Link
+              to="/home" // Changed to navigate to /home
+              className="flex flex-col items-center text-xs text-neutral-400 hover:text-neutral-100 transition-colors"
+              aria-label="New Conversation"
+            >
+              <div className="p-1 rounded-md hover:bg-neutral-700 flex items-center justify-center w-10 h-10 aspect-square">
+                <PlusIcon className="w-6 h-6" />
+              </div>
+              <span className="mt-1">New</span>
+            </Link>
+
+            {/* Recent Conversations Button */}
+            <Link
+              to="/recent-conversations"
+              className="flex flex-col items-center text-xs text-neutral-400 hover:text-neutral-100 transition-colors"
+              aria-label="Recent Conversations"
+            >
+              <div className="p-1 rounded-md hover:bg-neutral-700 flex items-center justify-center w-10 h-10 aspect-square">
+                <MessageIcon className="w-6 h-6" /> {/* Using MessageIcon */}
+              </div>
+              <span className="mt-1">Recent</span>
+            </Link>
+
+            {/* Keeping NewProjectButton for now, can be decided later if it's redundant */}
             <NewProjectButton />
             <ConversationPanelButton
               isOpen={conversationPanelIsOpen}

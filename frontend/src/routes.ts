@@ -7,7 +7,9 @@ import {
 
 export default [
   layout("routes/root-layout.tsx", [
-    index("routes/home.tsx"),
+    index("routes/recent-conversations-page.tsx"), // Default route '/' now shows recent conversations
+    route("home", "routes/home.tsx"), // Make old home accessible at /home
+    route("recent-conversations", "routes/recent-conversations-page.tsx"), // Explicit route for /recent-conversations
     route("accept-tos", "routes/accept-tos.tsx"),
     route("settings", "routes/settings.tsx", [
       index("routes/llm-settings.tsx"),
