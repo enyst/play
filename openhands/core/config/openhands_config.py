@@ -107,10 +107,6 @@ class OpenHandsConfig(BaseModel):
     )  # Maximum number of concurrent agent loops allowed per user
     mcp_host: str = Field(default=f'localhost:{os.getenv("port", 3000)}')
     mcp: MCPConfig = Field(default_factory=MCPConfig)
-    sse_port: int | None = Field(
-        default=None,
-        description='Port for the SSE server when running in CLI mode with VS Code extension.',
-    )
 
     defaults_dict: ClassVar[dict] = {}
 
