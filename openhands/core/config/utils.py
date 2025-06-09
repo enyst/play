@@ -744,12 +744,6 @@ def get_parser() -> argparse.ArgumentParser:
         type=bool,
         default=False,
     )
-    parser.add_argument(
-        '--sse-port',
-        type=int,
-        default=None,
-        help='Port for the SSE server for VS Code extension communication. If not provided, SSE server will not start.',
-    )
     return parser
 
 
@@ -840,8 +834,5 @@ def setup_config_from_args(args: argparse.Namespace) -> OpenHandsConfig:
     # Read selected repository in config for use by CLI and main.py
     if args.selected_repo is not None:
         config.sandbox.selected_repo = args.selected_repo
-
-    if hasattr(args, 'sse_port') and args.sse_port is not None:
-        config.sse_port = args.sse_port
 
     return config
