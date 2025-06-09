@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { SocketService } from "./services/socket-service.js";
+import { SocketService, DelegatedActionOhEvent } from "./services/socket-service.js";
 import { ConversationService } from "./services/conversation-service.js";
 import { HealthService } from "./services/health-service.js";
 import { WebviewMessage, SocketMessage } from "../shared/types";
+import { VsCodeRuntimeActionHandler } from "./services/vscodeRuntimeActionHandler.js";
 
 export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "openhandsView";
@@ -12,6 +13,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
 
   private socketService?: SocketService;
+  private vscodeRuntimeActionHandler?: VsCodeRuntimeActionHandler;
 
   private conversationService: ConversationService;
 
@@ -29,7 +31,6 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
   ) {
     try {
       console.log("[OpenHands Extension] WebviewProvider constructor called");
-      // Get server URL from settings
       const config = vscode.workspace.getConfiguration("openhands");
       this.serverUrl = config.get("serverUrl") || "http://localhost:3000";
       console.log("[OpenHands Extension] Server URL:", this.serverUrl);
@@ -49,7 +50,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
+    _resolveContext: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken,
   ) {
     console.log("[OpenHands Extension] resolveWebviewView called");
@@ -65,7 +66,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(
       (message: WebviewMessage) => {
         console.log(
-          "[OpenHands Extension] Raw message received:",
+          "[OpenHands Extension] Raw message received from webview:",
           JSON.stringify(message),
         );
         this.handleWebviewMessage(message);
@@ -74,89 +75,63 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
       this.context.subscriptions,
     );
 
-    // Perform initial health check
     this.performHealthCheck();
 
-    // Setup periodic health check
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
     this.healthCheckInterval = setInterval(() => {
       if (this.view && this.view.visible) {
-        console.log(
-          "[OpenHands Extension] Performing periodic health check (view visible).",
-        );
         this.performHealthCheck();
       } else {
         console.log(
           "[OpenHands Extension] Skipping periodic health check (view not visible or disposed).",
         );
       }
-    }, 60000); // 60 seconds
+    }, 60000);
 
-    // Add disposal logic for the interval and other resources
-    // This will be pushed to context.subscriptions to be managed by VS Code
     this.context.subscriptions.push(
       new vscode.Disposable(() => {
+        console.log("[OpenHands Extension] Global deactivation triggered.");
         if (this.healthCheckInterval) {
           clearInterval(this.healthCheckInterval);
           this.healthCheckInterval = undefined;
-          console.log(
-            "[OpenHands Extension] Cleared health check interval on extension deactivation/dispose.",
-          );
         }
         if (this.socketService) {
           this.socketService.disconnect();
           this.socketService = undefined;
-          console.log(
-            "[OpenHands Extension] Disconnected socket service on extension deactivation/dispose.",
-          );
+        }
+        if (this.vscodeRuntimeActionHandler) {
+          this.vscodeRuntimeActionHandler = undefined;
         }
       }),
     );
 
-    // Handle webview-specific disposal (e.g., when the view itself is closed by the user)
     webviewView.onDidDispose(
       () => {
         console.log(
           "[OpenHands Extension] Webview panel for OpenHandsViewProvider disposed.",
         );
-        if (this.healthCheckInterval) {
-          clearInterval(this.healthCheckInterval);
-          this.healthCheckInterval = undefined;
-          console.log(
-            "[OpenHands Extension] Cleared health check interval due to webview disposal.",
-          );
-        }
         if (this.socketService) {
           this.socketService.disconnect();
           this.socketService = undefined;
-          console.log(
-            "[OpenHands Extension] Disconnected socket service due to webview disposal.",
-          );
         }
-        this.view = undefined; // Clear the view reference
+        if (this.vscodeRuntimeActionHandler) {
+          this.vscodeRuntimeActionHandler = undefined;
+        }
+        this.view = undefined;
       },
-      null, // Using null for `thisArgs`
-      this.context.subscriptions, // Add this disposable to the extension's subscriptions
+      null,
+      this.context.subscriptions,
     );
   }
 
   private async handleWebviewMessage(message: WebviewMessage) {
     if (!this.view) {
-      console.log(
-        "[OpenHands Extension] No view available for message:",
-        message.type,
-      );
+      console.warn("[OpenHands Extension] No view available for message:", message.type);
       return;
     }
-
-    console.log(
-      "[OpenHands Extension] Received webview message:",
-      message.type,
-      message,
-    );
-
+    console.log("[OpenHands Extension] Handling webview message:", message.type, message);
     try {
       switch (message.type) {
         case "userPrompt":
@@ -168,30 +143,21 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
           await this.startNewConversation();
           break;
         case "checkHealth":
-          console.log("[OpenHands Extension] Processing health check request");
           await this.performHealthCheck();
           break;
         case "openFile":
           if (message.data && message.data.path) {
             await this.handleOpenFileRequest(message.data.path);
           } else {
-            console.warn(
-              "[OpenHands Extension] Received openFile request without a valid path.",
-              message.data,
-            );
-            vscode.window.showWarningMessage(
-              "Could not open item: Path not provided.",
-            );
+            console.warn("[OpenHands Extension] Received openFile request without a valid path.");
+            vscode.window.showWarningMessage("Could not open item: Path not provided.");
           }
           break;
         default:
-          console.log(
-            "[OpenHands Extension] Unknown message type:",
-            message.type,
-          );
+          console.warn("[OpenHands Extension] Unknown message type from webview:", message.type);
       }
     } catch (error) {
-      console.error("[OpenHands Extension] Error handling message:", error);
+      console.error("[OpenHands Extension] Error handling webview message:", error);
       this.postMessageToWebview({
         type: "error",
         message: `Error handling message: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -201,224 +167,196 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
 
   private async handleUserPrompt(text: string) {
     try {
-      // If no conversation exists, create one
       if (!this.conversationId) {
+        console.log("[OpenHands Extension] No active conversation, creating new one.");
         await this.createConversation(text);
       }
 
-      // If socket service doesn't exist or conversation changed, create/update it
       if (!this.socketService || !this.socketService.isConnected()) {
+        console.log("[OpenHands Extension] Socket service not ready or disconnected, creating/connecting.");
         this.createSocketService();
         this.socketService!.connect();
+      } else if (this.socketService.isConnected() && !this.vscodeRuntimeActionHandler) {
+        const rawSocket = this.socketService.socket;
+        if (rawSocket) {
+          console.warn("[OpenHands Extension] Socket connected, but VsCodeRuntimeActionHandler missing. Re-initializing.");
+          this.vscodeRuntimeActionHandler = new VsCodeRuntimeActionHandler(rawSocket);
+        } else {
+           console.error("[OpenHands Extension] Socket connected, but raw socket unavailable for VsCodeRuntimeActionHandler.");
+        }
       }
 
-      // Send the message
+      console.log("[OpenHands Extension] Sending user prompt via socket service.");
       this.socketService!.sendMessage(text);
+
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "SETTINGS_NOT_FOUND_ERROR"
-      ) {
+      console.error("[OpenHands Extension] Error in handleUserPrompt:", error);
+      if (error instanceof Error && error.message === "SETTINGS_NOT_FOUND_ERROR") {
         this.postMessageToWebview({
-          type: "status", // Change type to "status"
-          message:
-            "LLM settings not found. Please configure your LLM API key and model in the OpenHands settings.",
+          type: "status",
+          message: "LLM settings not found. Please configure your LLM API key and model in the OpenHands settings.",
         });
       } else {
         this.postMessageToWebview({
           type: "error",
-          message:
-            error instanceof Error ? error.message : "Unknown error occurred",
+          message: error instanceof Error ? error.message : "Unknown error occurred during prompt handling.",
         });
       }
     }
   }
 
   private async startNewConversation() {
-    // Disconnect existing socket
+    console.log("[OpenHands Extension] Starting new conversation.");
     if (this.socketService) {
       this.socketService.disconnect();
       this.socketService = undefined;
     }
-
+    if (this.vscodeRuntimeActionHandler) {
+      this.vscodeRuntimeActionHandler = undefined;
+      console.log("[OpenHands Extension] VsCodeRuntimeActionHandler cleared for new conversation.");
+    }
     this.conversationId = null;
-
-    // Clear chat in webview
     this.postMessageToWebview({ type: "clearChat" });
+    await this.performHealthCheck();
   }
 
   private async createConversation(initialMessage: string) {
     try {
-      this.conversationId =
-        await this.conversationService.createConversation(initialMessage);
-      console.log("Created conversation:", this.conversationId);
+      console.log("[OpenHands Extension] Creating new conversation on backend.");
+      this.conversationId = await this.conversationService.createConversation(initialMessage);
+      console.log("[OpenHands Extension] Created conversation with ID:", this.conversationId);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "SETTINGS_NOT_FOUND_ERROR"
-      ) {
-        throw error; // Re-throw the specific error marker
+      console.error("[OpenHands Extension] Failed to create conversation:", error);
+      if (error instanceof Error && error.message === "SETTINGS_NOT_FOUND_ERROR") {
+        throw error;
       }
       throw new Error(
-        `Failed to create conversation: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to create conversation: ${error instanceof Error ? error.message : "Unknown server error"}`,
       );
     }
   }
 
   private createSocketService() {
     if (!this.conversationId) {
-      throw new Error("Cannot create socket service without conversation ID");
+      console.error("[OpenHands Extension] Cannot create socket service: conversationId is null.");
+      throw new Error("Cannot create socket service without conversation ID.");
+    }
+    console.log(`[OpenHands Extension] Creating SocketService for conversation: ${this.conversationId}`);
+    if (this.vscodeRuntimeActionHandler) {
+        this.vscodeRuntimeActionHandler = undefined;
+        console.log("[OpenHands Extension] Cleared previous VsCodeRuntimeActionHandler before new SocketService.");
     }
 
     this.socketService = new SocketService({
       serverUrl: this.serverUrl,
       conversationId: this.conversationId,
-      onEvent: (event: SocketMessage) => {
-        // Check if this is a status update
+      onWebviewEvent: (event: SocketMessage) => {
         if ("status_update" in event) {
-          // This is already a StatusMessage, send as statusUpdate
-          this.postMessageToWebview({
-            type: "statusUpdate",
-            data: event,
-          });
+          this.postMessageToWebview({ type: "statusUpdate", data: event });
         } else {
-          // Regular agent event
-          this.postMessageToWebview({
-            type: "agentResponse",
-            data: event,
-          });
+          this.postMessageToWebview({ type: "agentResponse", data: event });
+        }
+      },
+      onRuntimeAction: (event: DelegatedActionOhEvent) => {
+        console.log("[OpenHands Extension] Received runtime action via onRuntimeAction:", event.action, "ID:", event.id);
+        if (this.vscodeRuntimeActionHandler) {
+          this.vscodeRuntimeActionHandler.handleAction(event)
+            .then(() => console.log(`[OpenHands Extension] Runtime action ${event.action} (ID: ${event.id}) handled.`))
+            .catch(err => {
+                console.error(`[OpenHands Extension] Error in vscodeRuntimeActionHandler.handleAction for ${event.action} (ID: ${event.id}):`, err);
+            });
+        } else {
+          console.error("[OpenHands Extension] VsCodeRuntimeActionHandler not initialized. Cannot handle runtime action:", event.action );
         }
       },
       onConnect: () => {
-        this.postMessageToWebview({
-          type: "status",
-          message: "Agent connected",
-        });
+        console.log("[OpenHands Extension] SocketService onConnect callback triggered.");
+        this.postMessageToWebview({ type: "status", message: "Agent connected" });
+        if (this.socketService && this.socketService.socket) {
+          console.log("[OpenHands Extension] Socket connected, initializing VsCodeRuntimeActionHandler.");
+          this.vscodeRuntimeActionHandler = new VsCodeRuntimeActionHandler(this.socketService.socket);
+        } else {
+            console.error("[OpenHands Extension] Socket connected, but raw socket unavailable for VsCodeRuntimeActionHandler initialization.");
+        }
       },
       onDisconnect: (reason: string) => {
-        this.postMessageToWebview({
-          type: "status",
-          message: `Agent disconnected: ${reason}`,
-        });
+        console.log(`[OpenHands Extension] SocketService onDisconnect callback: ${reason}`);
+        this.postMessageToWebview({ type: "status", message: `Agent disconnected: ${reason}` });
+        if (this.vscodeRuntimeActionHandler) {
+          this.vscodeRuntimeActionHandler = undefined;
+          console.log("[OpenHands Extension] VsCodeRuntimeActionHandler cleared due to socket disconnect.");
+        }
       },
       onError: (error: Error) => {
-        this.postMessageToWebview({
-          type: "error",
-          message: error.message,
-        });
+        console.error("[OpenHands Extension] SocketService onError callback:", error);
+        this.postMessageToWebview({ type: "error", message: error.message });
       },
     });
   }
 
   private async performHealthCheck() {
     try {
-      console.log("[OpenHands Extension] Starting health check...");
+      console.log("[OpenHands Extension] Performing health check...");
       const healthResult = await this.healthService.checkHealth();
-      console.log("[OpenHands Extension] Health check result:", healthResult);
-
-      this.postMessageToWebview({
-        type: "healthCheck",
-        data: healthResult,
-      });
+      this.postMessageToWebview({ type: "healthCheck", data: healthResult });
     } catch (error) {
-      console.error("[OpenHands Extension] Health check error:", error);
+      console.error("[OpenHands Extension] Health check failed:", error);
       this.postMessageToWebview({
         type: "healthCheck",
-        data: {
-          isHealthy: false,
-          error: error instanceof Error ? error.message : "Unknown error",
-        },
+        data: { isHealthy: false, error: error instanceof Error ? error.message : "Unknown health check error" },
       });
     }
   }
 
   private async handleOpenFileRequest(itemPath: string) {
-    console.log(
-      `[OpenHands Extension] Processing openFile request for: ${itemPath}`,
-    );
+    console.log(`[OpenHands Extension] Processing openFile request for: ${itemPath}`);
     try {
-      const itemStat = await fs.promises.stat(itemPath); // Renamed 'stat' to 'itemStat', now async
+      const itemStat = await fs.promises.stat(itemPath);
       if (itemStat.isDirectory()) {
-        console.log(
-          `[OpenHands Extension] Path is a directory: ${itemPath}. Revealing in explorer.`,
-        );
         const dirUri = vscode.Uri.file(itemPath);
-        // Ensure explorer is visible and then reveal
         await vscode.commands.executeCommand("workbench.view.explorer");
         await vscode.commands.executeCommand("revealInExplorer", dirUri);
-        console.log(
-          `[OpenHands Extension] Successfully revealed directory: ${itemPath}`,
-        );
       } else if (itemStat.isFile()) {
-        console.log(
-          `[OpenHands Extension] Path is a file: ${itemPath}. Opening in editor.`,
-        );
         const fileUri = vscode.Uri.file(itemPath);
         const document = await vscode.workspace.openTextDocument(fileUri);
         await vscode.window.showTextDocument(document);
-        console.log(
-          `[OpenHands Extension] Successfully opened file: ${itemPath}`,
-        );
       } else {
-        console.warn(
-          `[OpenHands Extension] Path is neither a file nor a directory: ${itemPath}`,
-        );
-        vscode.window.showWarningMessage(
-          `Cannot open: ${itemPath} is not a file or directory.`,
-        );
+        vscode.window.showWarningMessage(`Cannot open: ${itemPath} is not a file or directory.`);
       }
     } catch (error) {
-      console.error(
-        `[OpenHands Extension] Error processing path ${itemPath}:`,
-        error,
-      );
-      if (
-        error instanceof Error &&
-        (error as NodeJS.ErrnoException).code === "ENOENT"
-      ) {
+      console.error(`[OpenHands Extension] Error processing path ${itemPath}:`, error);
+      if (error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT") {
         vscode.window.showErrorMessage(`Path not found: ${itemPath}`);
       } else {
-        vscode.window.showErrorMessage(
-          `Failed to process path: ${itemPath}. ${error instanceof Error ? error.message : ""}`,
-        );
+        vscode.window.showErrorMessage(`Failed to process path: ${itemPath}. ${error instanceof Error ? error.message : ""}`);
       }
     }
   }
 
   private postMessageToWebview(message: WebviewMessage) {
-    if (this.view) {
+    if (this.view && this.view.webview) {
       this.view.webview.postMessage(message);
+    } else {
+      console.warn("[OpenHands Extension] Cannot post message: Webview not available.", message.type);
     }
   }
 
   private _getNonce(): string {
-    return getNonce(); // Calls the existing global function
+    return getNonce();
   }
 
-  private _getUri(
-    webview: vscode.Webview,
-    ...pathSegments: string[]
-  ): vscode.Uri {
-    return webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, ...pathSegments),
-    );
+  private _getUri(webview: vscode.Webview, ...pathSegments: string[]): vscode.Uri {
+    return webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, ...pathSegments));
   }
 
   private _getCspDirectives(webview: vscode.Webview, nonce: string): string {
-    const { cspSource } = webview; // e.g., vscode-webview-resource:
-    const serverHttpUrl = this.serverUrl.replace(/\/\/$/, ""); // Remove trailing slash
-    const serverWsUrl = serverHttpUrl.replace(/^http/, "ws"); // http -> ws, https -> wss
-
-    // CSP Notes:
-    // - connect-src is now dynamically set to the configured serverUrl and its WebSocket equivalent.
-    // - style-src includes 'unsafe-inline'. This is kept for now to maintain existing behavior.
-    //   It should be reviewed as a future hardening step.
-    // - img-src allows loading images from extension resources and data URIs.
-    return `default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${serverHttpUrl} ${serverWsUrl}; img-src ${cspSource} data:;`;
+    const { cspSource } = webview;
+    const serverHttpUrl = this.serverUrl.replace(/\/\/$/, "");
+    const serverWsUrl = serverHttpUrl.replace(/^http/, "ws");
+    return `default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${serverHttpUrl} ${serverWsUrl}; img-src ${cspSource} data:; font-src ${cspSource};`;
   }
 
   private getHtmlForWebview(webview: vscode.Webview): string {
-    // Get values for template placeholders using helper methods
     const nonce = this._getNonce();
     const scriptUri = this._getUri(webview, "dist", "webview.iife.js");
     const styleCssUri = this._getUri(webview, "dist", "webview.css");
@@ -426,56 +364,24 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
     const styleVSCodeUri = this._getUri(webview, "media", "vscode.css");
     const cspDirectives = this._getCspDirectives(webview, nonce);
 
-    // Construct path to HTML template relative to extension root
-    const templatePath = path.join(
-      this.extensionUri.fsPath,
-      "src",
-      "extension",
-      "webview",
-      "template.html",
-    );
+    const templatePath = path.join(this.extensionUri.fsPath, "src", "extension", "webview", "template.html");
 
     let htmlContent: string;
     try {
       htmlContent = fs.readFileSync(templatePath, "utf-8");
     } catch (error) {
-      console.error(
-        "[OpenHands Extension] Error reading HTML template:",
-        templatePath,
-        error,
-      );
-      // Return a minimal HTML body with the error to ensure the webview doesn't stay blank
-      // Also, log the path that was attempted to aid debugging.
+      console.error("[OpenHands Extension] Error reading HTML template:", templatePath, error);
       return `<html><body><p style="color:var(--vscode-editor-foreground); padding:20px;">Error loading webview content. Failed to read template file at: ${templatePath}. Error: ${error instanceof Error ? error.message : String(error)}</p></body></html>`;
     }
 
-    // Replace placeholders in the template
-    // Using global regex replace for each placeholder
     htmlContent = htmlContent.replace(/{{CSP_DIRECTIVES}}/g, cspDirectives);
     htmlContent = htmlContent.replace(/{{NONCE}}/g, nonce);
     htmlContent = htmlContent.replace(/{{SCRIPT_URI}}/g, scriptUri.toString());
-    htmlContent = htmlContent.replace(
-      /{{STYLE_RESET_URI}}/g,
-      styleResetUri.toString(),
-    );
-    htmlContent = htmlContent.replace(
-      /{{STYLE_VSCODE_URI}}/g,
-      styleVSCodeUri.toString(),
-    );
-    htmlContent = htmlContent.replace(
-      /{{STYLE_CSS_URI}}/g,
-      styleCssUri.toString(),
-    );
-
-    // For the logged URIs in the template
-    htmlContent = htmlContent.replace(
-      /{{SCRIPT_URI_LOG}}/g,
-      scriptUri.toString(),
-    );
-    htmlContent = htmlContent.replace(
-      /{{STYLE_CSS_URI_LOG}}/g,
-      styleCssUri.toString(),
-    );
+    htmlContent = htmlContent.replace(/{{STYLE_RESET_URI}}/g, styleResetUri.toString());
+    htmlContent = htmlContent.replace(/{{STYLE_VSCODE_URI}}/g, styleVSCodeUri.toString());
+    htmlContent = htmlContent.replace(/{{STYLE_CSS_URI}}/g, styleCssUri.toString());
+    htmlContent = htmlContent.replace(/{{SCRIPT_URI_LOG}}/g, scriptUri.toString());
+    htmlContent = htmlContent.replace(/{{STYLE_CSS_URI_LOG}}/g, styleCssUri.toString());
 
     return htmlContent;
   }
@@ -483,8 +389,7 @@ export class OpenHandsViewProvider implements vscode.WebviewViewProvider {
 
 function getNonce() {
   let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   for (let i = 0; i < 32; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
