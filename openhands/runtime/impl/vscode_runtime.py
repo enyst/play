@@ -1,7 +1,8 @@
 import asyncio
 import uuid
+import socketio # Added for type hinting
 
-from openhands.core.config import OpenHandsConfig  # Corrected case
+from openhands.core.config import OpenHandsConfig
 from openhands.core.event_stream import EventStream
 from openhands.core.logger import openhands_logger as logger
 from openhands.events.action import (
@@ -26,38 +27,44 @@ from openhands.events.observation import (
 )
 from openhands.runtime.base import Runtime
 
-GLOBAL_SOCKET_IO_CLIENT = None
+# GLOBAL_SOCKET_IO_CLIENT = None # Removed
 
 
 class VsCodeRuntime(Runtime):
     """
     A runtime that delegates action execution to a VS Code extension.
-    This class sends actions to the VS Code extension via a communication channel
-    (e.g., Socket.IO) and receives observations in return.
+    This class sends actions to the VS Code extension via the main Socket.IO server
+    and receives observations in return.
     """
 
     def __init__(
         self,
-        config: OpenHandsConfig,  # Corrected case
+        config: OpenHandsConfig,
         event_stream: EventStream,
-        sid: str = 'default_sid',
+        sio_server: socketio.AsyncServer, # The main backend Socket.IO server
+        socket_connection_id: str,      # The Socket.IO SID of the VS Code extension client
+        logical_sid: str = 'default_logical_sid', # Logical identifier for this runtime/conversation
     ):
         super().__init__(config=config, event_stream=event_stream)
-        self.sid = sid
+        self.sio_server = sio_server
+        self.socket_connection_id = socket_connection_id
+        self.logical_sid = logical_sid # Renamed from self.sid for clarity
         self._running_actions: dict[str, asyncio.Future[Observation]] = {}
-        logger.info('VsCodeRuntime initialized')
+        logger.info(
+            f'VsCodeRuntime initialized for logical_sid: {self.logical_sid}, '
+            f'socket_connection_id: {self.socket_connection_id}'
+        )
 
     async def _send_action_to_vscode(self, action: Action) -> Observation:
-        if GLOBAL_SOCKET_IO_CLIENT is None:
+        if self.sio_server is None or self.socket_connection_id is None:
             logger.error(
-                'Socket.IO client is not available. Cannot send action to VS Code.'
+                'sio_server or socket_connection_id is not configured. Cannot send action to VS Code.'
             )
-            obs = ErrorObservation(
-                content='Socket.IO client not configured. VsCodeRuntime cannot operate.'
+            return ErrorObservation(
+                content='VsCodeRuntime is not properly configured with a connection. Cannot operate.'
             )
-            return obs
 
-        event_id = str(uuid.uuid4())  # type: ignore[unreachable]
+        event_id = str(uuid.uuid4())
 
         oh_event_payload = {
             'id': event_id,
@@ -65,38 +72,63 @@ class VsCodeRuntime(Runtime):
             'args': action.args,
             'message': f'Action delegate: {action.message}'
             if hasattr(action, 'message') and action.message
-            else f'Delegating {action.action} to VSCode',
+            else f'Delegating {action.action} to VSCode via socket_connection_id: {self.socket_connection_id}',
             'source': 'agent',
         }
 
         if hasattr(action, 'thought') and action.thought:
-            if not isinstance(oh_event_payload['args'], dict):
+            # Ensure args is a dict before adding thought
+            if not isinstance(oh_event_payload.get('args'), dict):
                 oh_event_payload['args'] = {}
             oh_event_payload['args']['thought'] = action.thought
 
         future: asyncio.Future[Observation] = asyncio.get_event_loop().create_future()
         self._running_actions[event_id] = future
 
-        logger.info(f'Sending action to VSCode (event_id: {event_id}): {action.action}')
+        logger.info(
+            f'Sending action to VSCode (event_id: {event_id}, socket_id: {self.socket_connection_id}): {action.action}'
+        )
         logger.debug(f'Action details: {oh_event_payload}')
 
-        print(
-            f"SIMULATING: Emitting 'oh_event' to VSCode extension: {oh_event_payload}"
-        )
+        try:
+            if not hasattr(self.sio_server, 'emit'):
+                logger.error("Provided sio_server does not have an 'emit' method.")
+                # Clean up future before returning
+                self._running_actions.pop(event_id, None)
+                future.cancel() # Ensure future is not left pending
+                return ErrorObservation(content='sio_server is misconfigured for VsCodeRuntime.')
+
+            await self.sio_server.emit(
+                'oh_event', oh_event_payload, to=self.socket_connection_id
+            )
+            logger.debug(
+                f'Action emitted to socket_connection_id: {self.socket_connection_id}'
+            )
+
+        except Exception as e:
+            logger.error(f'Error emitting action to VSCode (socket_id: {self.socket_connection_id}): {e}')
+            # Clean up future before returning
+            self._running_actions.pop(event_id, None)
+            if not future.done(): # Check if future is already resolved/cancelled
+                 future.set_exception(e) # Propagate exception to the future if not already done
+            return ErrorObservation(content=f'Failed to send action to VS Code extension: {e}')
 
         try:
             observation = await asyncio.wait_for(
                 future, timeout=self.config.sandbox.timeout
             )
-            logger.info(f'Received observation for event_id {event_id}')
+            logger.info(f'Received observation for event_id {event_id} from socket_id: {self.socket_connection_id}')
             return observation
         except asyncio.TimeoutError:
-            logger.error(f'Timeout waiting for observation for event_id {event_id}')
-            obs = ErrorObservation(
+            logger.error(f'Timeout waiting for observation for event_id {event_id} from socket_id: {self.socket_connection_id}')
+            # The future is automatically cancelled by wait_for on timeout.
+            # We just need to ensure it's removed from _running_actions, which finally does.
+            return ErrorObservation(
                 content=f'Timeout waiting for VS Code extension response for action: {action.action}'
             )
-            # Cannot set obs.cause = event_id due to read-only property
-            return obs
+        except asyncio.CancelledError:
+            logger.info(f'Action {event_id} was cancelled while awaiting observation.')
+            return ErrorObservation(content=f'Action {action.action} was cancelled.')
         finally:
             self._running_actions.pop(event_id, None)
 
