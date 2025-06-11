@@ -29,7 +29,7 @@ from openhands.microagent.microagent import BaseMicroagent
 from openhands.runtime import get_runtime_cls
 from openhands.runtime.base import Runtime
 from openhands.runtime.impl.remote.remote_runtime import RemoteRuntime
-from openhands.runtime.impl.vscode_runtime import VsCodeRuntime
+from openhands.runtime.impl.vscode import VsCodeRuntime
 from openhands.security import SecurityAnalyzer, options
 from openhands.storage.data_models.user_secrets import UserSecrets
 from openhands.storage.files import FileStore

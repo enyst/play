@@ -1,6 +1,7 @@
 import asyncio
 import uuid
-import socketio # Added for type hinting
+
+import socketio  # Added for type hinting
 
 from openhands.core.config import OpenHandsConfig
 from openhands.core.event_stream import EventStream
@@ -41,14 +42,14 @@ class VsCodeRuntime(Runtime):
         self,
         config: OpenHandsConfig,
         event_stream: EventStream,
-        sio_server: socketio.AsyncServer, # The main backend Socket.IO server
-        socket_connection_id: str,      # The Socket.IO SID of the VS Code extension client
-        logical_sid: str = 'default_logical_sid', # Logical identifier for this runtime/conversation
+        sio_server: socketio.AsyncServer,  # The main backend Socket.IO server
+        socket_connection_id: str,  # The Socket.IO SID of the VS Code extension client
+        logical_sid: str = 'default_logical_sid',  # Logical identifier for this runtime/conversation
     ):
         super().__init__(config=config, event_stream=event_stream)
         self.sio_server = sio_server
         self.socket_connection_id = socket_connection_id
-        self.logical_sid = logical_sid # Renamed from self.sid for clarity
+        self.logical_sid = logical_sid  # Renamed from self.sid for clarity
         self._running_actions: dict[str, asyncio.Future[Observation]] = {}
         logger.info(
             f'VsCodeRuntime initialized for logical_sid: {self.logical_sid}, '
@@ -95,8 +96,10 @@ class VsCodeRuntime(Runtime):
                 logger.error("Provided sio_server does not have an 'emit' method.")
                 # Clean up future before returning
                 self._running_actions.pop(event_id, None)
-                future.cancel() # Ensure future is not left pending
-                return ErrorObservation(content='sio_server is misconfigured for VsCodeRuntime.')
+                future.cancel()  # Ensure future is not left pending
+                return ErrorObservation(
+                    content='sio_server is misconfigured for VsCodeRuntime.'
+                )
 
             await self.sio_server.emit(
                 'oh_event', oh_event_payload, to=self.socket_connection_id
@@ -106,21 +109,31 @@ class VsCodeRuntime(Runtime):
             )
 
         except Exception as e:
-            logger.error(f'Error emitting action to VSCode (socket_id: {self.socket_connection_id}): {e}')
+            logger.error(
+                f'Error emitting action to VSCode (socket_id: {self.socket_connection_id}): {e}'
+            )
             # Clean up future before returning
             self._running_actions.pop(event_id, None)
-            if not future.done(): # Check if future is already resolved/cancelled
-                 future.set_exception(e) # Propagate exception to the future if not already done
-            return ErrorObservation(content=f'Failed to send action to VS Code extension: {e}')
+            if not future.done():  # Check if future is already resolved/cancelled
+                future.set_exception(
+                    e
+                )  # Propagate exception to the future if not already done
+            return ErrorObservation(
+                content=f'Failed to send action to VS Code extension: {e}'
+            )
 
         try:
             observation = await asyncio.wait_for(
                 future, timeout=self.config.sandbox.timeout
             )
-            logger.info(f'Received observation for event_id {event_id} from socket_id: {self.socket_connection_id}')
+            logger.info(
+                f'Received observation for event_id {event_id} from socket_id: {self.socket_connection_id}'
+            )
             return observation
         except asyncio.TimeoutError:
-            logger.error(f'Timeout waiting for observation for event_id {event_id} from socket_id: {self.socket_connection_id}')
+            logger.error(
+                f'Timeout waiting for observation for event_id {event_id} from socket_id: {self.socket_connection_id}'
+            )
             # The future is automatically cancelled by wait_for on timeout.
             # We just need to ensure it's removed from _running_actions, which finally does.
             return ErrorObservation(
