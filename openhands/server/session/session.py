@@ -50,22 +50,31 @@ class Session:
 
     def __init__(
         self,
-        sid: str,
+        sid: str,  # This is conversation_id
         config: OpenHandsConfig,
         file_store: FileStore,
-        sio: socketio.AsyncServer | None,
+        sio: socketio.AsyncServer | None,  # This is the sio_server for AgentSession
         user_id: str | None = None,
+        socket_connection_id: str
+        | None = None,  # New: Actual Socket.IO SID for this specific client connection
     ):
-        self.sid = sid
-        self.sio = sio
+        self.sid = sid  # conversation_id
+        self.sio = sio  # main sio server instance
+        self.socket_connection_id = (
+            socket_connection_id  # specific client's socket.io connection id
+        )
         self.last_active_ts = int(time.time())
         self.file_store = file_store
-        self.logger = OpenHandsLoggerAdapter(extra={'session_id': sid})
+        self.logger = OpenHandsLoggerAdapter(
+            extra={'session_id': sid, 'socket_conn_id': socket_connection_id}
+        )
         self.agent_session = AgentSession(
-            sid,
-            file_store,
+            sid=sid,  # conversation_id for AgentSession
+            file_store=file_store,
             status_callback=self.queue_status_message,
             user_id=user_id,
+            sio_server=self.sio,  # Pass the main sio server instance
+            socket_connection_id=self.socket_connection_id,  # Pass the specific client's socket.io connection id
         )
         self.agent_session.event_stream.subscribe(
             EventStreamSubscriber.SERVER, self.on_event, self.sid

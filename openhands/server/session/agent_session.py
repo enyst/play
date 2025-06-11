@@ -5,6 +5,8 @@ from logging import LoggerAdapter
 from types import MappingProxyType
 from typing import Callable, cast
 
+import socketio  # For type hinting AsyncServer
+
 from openhands.controller import AgentController
 from openhands.controller.agent import Agent
 from openhands.controller.replay import ReplayManager
@@ -27,6 +29,7 @@ from openhands.microagent.microagent import BaseMicroagent
 from openhands.runtime import get_runtime_cls
 from openhands.runtime.base import Runtime
 from openhands.runtime.impl.remote.remote_runtime import RemoteRuntime
+from openhands.runtime.impl.vscode import VsCodeRuntime
 from openhands.security import SecurityAnalyzer, options
 from openhands.storage.data_models.user_secrets import UserSecrets
 from openhands.storage.files import FileStore
@@ -59,16 +62,22 @@ class AgentSession:
 
     def __init__(
         self,
-        sid: str,
+        sid: str,  # This is conversation_id
         file_store: FileStore,
         status_callback: Callable | None = None,
         user_id: str | None = None,
+        sio_server: socketio.AsyncServer | None = None,  # New
+        socket_connection_id: str | None = None,  # New
     ) -> None:
-        """Initializes a new instance of the Session class
+        """Initializes a new instance of the AgentSession class
 
         Parameters:
-        - sid: The session ID
+        - sid: The session ID (typically conversation_id)
         - file_store: Instance of the FileStore
+        - status_callback: Callback for status updates
+        - user_id: The user ID
+        - sio_server: The main Socket.IO server instance (for VsCodeRuntime)
+        - socket_connection_id: The Socket.IO connection SID (for VsCodeRuntime)
         """
 
         self.sid = sid
@@ -76,6 +85,8 @@ class AgentSession:
         self.file_store = file_store
         self._status_callback = status_callback
         self.user_id = user_id
+        self.sio_server = sio_server  # New
+        self.socket_connection_id = socket_connection_id  # New
         self.logger = OpenHandsLoggerAdapter(
             extra={'session_id': sid, 'user_id': user_id}
         )
@@ -320,44 +331,97 @@ class AgentSession:
 
         self.logger.debug(f'Initializing runtime `{runtime_name}` now...')
         runtime_cls = get_runtime_cls(runtime_name)
+        # Note: env_vars from custom_secrets is already prepared before this block (line 328).
+
         if runtime_cls == RemoteRuntime:
             # If provider tokens is passed in custom secrets, then remove provider from provider tokens
             # We prioritize provider tokens set in custom secrets
-            provider_tokens_without_gitlab = (
+            provider_tokens_for_remote = (
                 self.override_provider_tokens_with_custom_secret(
                     git_provider_tokens, custom_secrets
                 )
             )
-
+            # For RemoteRuntime, env_vars are just custom_secrets; tokens are handled by RemoteRuntime.
             self.runtime = runtime_cls(
                 config=config,
                 event_stream=self.event_stream,
                 sid=self.sid,
                 plugins=agent.sandbox_plugins,
                 status_callback=self._status_callback,
-                headless_mode=False,
-                attach_to_existing=False,
-                git_provider_tokens=provider_tokens_without_gitlab,
-                env_vars=env_vars,
+                headless_mode=False,  # Consider making configurable
+                attach_to_existing=False,  # Consider making configurable
+                git_provider_tokens=provider_tokens_for_remote,
+                env_vars=env_vars,  # env_vars from custom_secrets
                 user_id=self.user_id,
             )
-        else:
+        elif runtime_cls == VsCodeRuntime:
+            if not self.sio_server:
+                self.logger.error(
+                    'sio_server is not available for VsCodeRuntime. Critical configuration missing.'
+                )
+                raise ValueError(
+                    'sio_server is not available for VsCodeRuntime. Cannot initialize.'
+                )
+            if not self.socket_connection_id:
+                self.logger.error(
+                    'socket_connection_id is not available for VsCodeRuntime. Critical configuration missing.'
+                )
+                raise ValueError(
+                    'socket_connection_id is not available for VsCodeRuntime. Cannot initialize.'
+                )
+
+            # Prepare combined env_vars for VsCodeRuntime (custom secrets + provider tokens)
+            # as its base class (Runtime) might need them for its ProviderHandler.
             provider_handler = ProviderHandler(
                 provider_tokens=git_provider_tokens
                 or cast(PROVIDER_TOKEN_TYPE, MappingProxyType({}))
             )
+            full_env_vars = (
+                env_vars.copy()
+            )  # Start with custom_secrets env_vars from line 328
+            full_env_vars.update(
+                await provider_handler.get_env_vars(expose_secrets=True)
+            )
 
-            # Merge git provider tokens with custom secrets before passing over to runtime
-            env_vars.update(await provider_handler.get_env_vars(expose_secrets=True))
+            self.runtime = VsCodeRuntime(
+                config=config,
+                event_stream=self.event_stream,
+                sio_server=self.sio_server,
+                socket_connection_id=self.socket_connection_id,
+                # Base Runtime parameters, matching Runtime.__init__ signature:
+                sid=self.sid,  # This is logical_sid for VsCodeRuntime, maps to sid for Runtime base
+                plugins=agent.sandbox_plugins,  # VsCodeRuntime specific plugins might be handled by agent config
+                env_vars=full_env_vars,
+                status_callback=self._status_callback,
+                attach_to_existing=False,  # VsCodeRuntime likely doesn't support attach_to_existing
+                headless_mode=False,  # VsCodeRuntime is inherently not headless from user PoV
+                user_id=self.user_id,
+                git_provider_tokens=git_provider_tokens,  # For base Runtime's provider_handler
+            )
+        else:  # For other local runtimes (e.g., LocalRuntime, DockerRuntime)
+            # Prepare combined env_vars (custom secrets + provider tokens)
+            provider_handler = ProviderHandler(
+                provider_tokens=git_provider_tokens
+                or cast(PROVIDER_TOKEN_TYPE, MappingProxyType({}))
+            )
+            full_env_vars = (
+                env_vars.copy()
+            )  # Start with custom_secrets env_vars from line 328
+            full_env_vars.update(
+                await provider_handler.get_env_vars(expose_secrets=True)
+            )
+
             self.runtime = runtime_cls(
                 config=config,
                 event_stream=self.event_stream,
                 sid=self.sid,
                 plugins=agent.sandbox_plugins,
                 status_callback=self._status_callback,
-                headless_mode=False,
-                attach_to_existing=False,
-                env_vars=env_vars,
+                headless_mode=False,  # Consider making configurable
+                attach_to_existing=False,  # Consider making configurable
+                env_vars=full_env_vars,
+                user_id=self.user_id,
+                git_provider_tokens=git_provider_tokens,
             )
 
         # FIXME: this sleep is a terrible hack.

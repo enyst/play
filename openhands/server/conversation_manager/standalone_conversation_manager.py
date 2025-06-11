@@ -115,18 +115,27 @@ class StandaloneConversationManager(ConversationManager):
 
     async def join_conversation(
         self,
-        sid: str,
-        connection_id: str,
+        sid: str,  # This is conversation_id
+        connection_id: str,  # This is the actual Socket.IO SID for this client connection
         settings: Settings,
         user_id: str | None,
     ) -> AgentLoopInfo:
         logger.info(
-            f'join_conversation:{sid}:{connection_id}',
-            extra={'session_id': sid, 'user_id': user_id},
+            f'join_conversation (conversation_id:{sid}, socket_connection_id:{connection_id})',
+            extra={
+                'session_id': sid,
+                'user_id': user_id,
+                'socket_conn_id': connection_id,
+            },
         )
         await self.sio.enter_room(connection_id, ROOM_KEY.format(sid=sid))
         self._local_connection_id_to_session_id[connection_id] = sid
-        agent_loop_info = await self.maybe_start_agent_loop(sid, settings, user_id)
+        agent_loop_info = await self.maybe_start_agent_loop(
+            sid,
+            settings,
+            user_id,
+            connection_id,  # Pass connection_id as socket_connection_id
+        )
         return agent_loop_info
 
     async def detach_from_conversation(self, conversation: ServerConversation):
@@ -240,29 +249,42 @@ class StandaloneConversationManager(ConversationManager):
 
     async def maybe_start_agent_loop(
         self,
-        sid: str,
+        sid: str,  # This is conversation_id
         settings: Settings,
         user_id: str | None,
+        socket_connection_id: str,  # New: Actual Socket.IO SID for this client connection
         initial_user_msg: MessageAction | None = None,
         replay_json: str | None = None,
     ) -> AgentLoopInfo:
-        logger.info(f'maybe_start_agent_loop:{sid}', extra={'session_id': sid})
+        logger.info(
+            f'maybe_start_agent_loop:{sid} for socket_connection_id: {socket_connection_id}',
+            extra={'session_id': sid, 'socket_conn_id': socket_connection_id},
+        )
         session = self._local_agent_loops_by_sid.get(sid)
         if not session:
             session = await self._start_agent_loop(
-                sid, settings, user_id, initial_user_msg, replay_json
+                sid,
+                settings,
+                user_id,
+                socket_connection_id,
+                initial_user_msg,
+                replay_json,  # Pass socket_connection_id
             )
         return self._agent_loop_info_from_session(session)
 
     async def _start_agent_loop(
         self,
-        sid: str,
+        sid: str,  # This is conversation_id
         settings: Settings,
         user_id: str | None,
+        socket_connection_id: str,  # New: Actual Socket.IO SID for this client connection
         initial_user_msg: MessageAction | None = None,
         replay_json: str | None = None,
     ) -> Session:
-        logger.info(f'starting_agent_loop:{sid}', extra={'session_id': sid})
+        logger.info(
+            f'starting_agent_loop:{sid} for socket_connection_id: {socket_connection_id}',
+            extra={'session_id': sid, 'socket_conn_id': socket_connection_id},
+        )
 
         response_ids = await self.get_running_agent_loops(user_id)
         if len(response_ids) >= self.config.max_concurrent_conversations:
@@ -296,11 +318,12 @@ class StandaloneConversationManager(ConversationManager):
                 await self.close_session(oldest_conversation_id)
 
         session = Session(
-            sid=sid,
+            sid=sid,  # conversation_id
             file_store=self.file_store,
             config=self.config,
             sio=self.sio,
             user_id=user_id,
+            socket_connection_id=socket_connection_id,  # Pass the actual Socket.IO SID
         )
         self._local_agent_loops_by_sid[sid] = session
         asyncio.create_task(
