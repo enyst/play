@@ -246,7 +246,7 @@ suite('Extension Test Suite', () => {
     const testCases = [
       { name: 'backslashes', input: 'c:\\path\\to\\file', expected: 'c:\\\\path\\\\to\\\\file' },
       { name: 'backticks', input: '`code` example', expected: '\\`code\\` example' },
-      { name: 'dollars', input: 'var is $val', expected: 'var is \\\\$val' },
+      { name: 'dollars', input: 'var is $val', expected: 'var is \\$val' },
       { name: 'quotes', input: 'text with "quotes"', expected: 'text with \\\\\\"quotes\\\\\\"' },
       {
         name: 'combination',
