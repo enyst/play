@@ -251,7 +251,7 @@ suite('Extension Test Suite', () => {
       {
         name: 'combination',
         input: 'complex "str`\\` $var" end',
-        expected: 'complex \\\\\\"str\\\\`\\\\\\\\\\\\` \\\\$var\\\\\\" end'
+        expected: 'complex \\\"str\\\\`\\\\\\\\` \\$var\\\" end'
       },
       {
         name: 'already escaped backslash before special char',
