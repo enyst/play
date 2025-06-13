@@ -256,7 +256,7 @@ suite('Extension Test Suite', () => {
       {
         name: 'already escaped backslash before special char',
         input: 'already \\$escaped',
-        expected: 'already \\\\\\\\$escaped' // \\ -> \\\\, $ -> \$ => \\\\\$
+        expected: 'already \\\\\\$escaped' // \\ -> \\\\, $ -> \\$ => \\\\\\$escaped
       }
     ];
 
