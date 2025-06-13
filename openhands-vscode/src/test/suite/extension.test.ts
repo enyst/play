@@ -153,8 +153,11 @@ suite('Extension Test Suite', () => {
     }
   });
 
-  test('openhands.startConversationWithFileContext (untitled file) should send --task command', async () => {
-    const untitledFileContent = "untitled content";
+  test('openhands.startConversationWithFileContext (untitled file) should send --task command with sanitization', async () => {
+    const untitledFileContent = "untitled content with `backticks`, \"quotes\", $dollars, and \\backslashes";
+    // Expected: openhands --task "untitled content with \`backticks\`, \"quotes\", \$dollars, and \\backslashes"
+    const expectedSanitizedContent = "untitled content with \\`backticks\\`, \\\"quotes\\\", \\$dollars, and \\\\backslashes";
+
     const originalActiveTextEditor = Object.getOwnPropertyDescriptor(vscode.window, 'activeTextEditor');
     Object.defineProperty(vscode.window, 'activeTextEditor', {
       get: () => ({
@@ -169,7 +172,7 @@ suite('Extension Test Suite', () => {
 
     await vscode.commands.executeCommand('openhands.startConversationWithFileContext');
     assert.ok(sendTextSpy.called, 'terminal.sendText should be called');
-    assert.deepStrictEqual(sendTextSpy.lastArgs, [`openhands --task "${untitledFileContent}"`, true]);
+    assert.deepStrictEqual(sendTextSpy.lastArgs, [`openhands --task "${expectedSanitizedContent}"`, true]);
 
     if (originalActiveTextEditor) {
       Object.defineProperty(vscode.window, 'activeTextEditor', originalActiveTextEditor);
@@ -189,8 +192,34 @@ suite('Extension Test Suite', () => {
     }
   });
 
-  test('openhands.startConversationWithSelectionContext should send --task with selection', async () => {
-    const selectedText = "selected text for openhands";
+  test('openhands.startConversationWithFileContext (saved file with spaces) should send quoted --file command', async () => {
+    const testFilePathWithSpaces = '/test path with spaces/file.py';
+    const originalActiveTextEditor = Object.getOwnPropertyDescriptor(vscode.window, 'activeTextEditor');
+    Object.defineProperty(vscode.window, 'activeTextEditor', {
+      get: () => ({
+        document: {
+          isUntitled: false,
+          uri: vscode.Uri.file(testFilePathWithSpaces),
+          fsPath: testFilePathWithSpaces,
+          getText: () => 'file content'
+        }
+      }),
+      configurable: true
+    });
+
+    await vscode.commands.executeCommand('openhands.startConversationWithFileContext');
+    assert.ok(sendTextSpy.called, 'terminal.sendText should be called');
+    assert.deepStrictEqual(sendTextSpy.lastArgs, [`openhands --file "${testFilePathWithSpaces}"`, true]);
+
+    if (originalActiveTextEditor) {
+      Object.defineProperty(vscode.window, 'activeTextEditor', originalActiveTextEditor);
+    }
+  });
+
+
+  test('openhands.startConversationWithSelectionContext should send --task with selection and sanitization', async () => {
+    const selectedText = "selected text with `backticks`, \"quotes\", $dollars, and \\backslashes";
+    const expectedSanitizedText = "selected text with \\`backticks\\`, \\\"quotes\\\", \\$dollars, and \\\\backslashes";
     const originalActiveTextEditor = Object.getOwnPropertyDescriptor(vscode.window, 'activeTextEditor');
     Object.defineProperty(vscode.window, 'activeTextEditor', {
       get: () => ({
@@ -199,18 +228,61 @@ suite('Extension Test Suite', () => {
           uri: vscode.Uri.file('/test/file.py'),
           getText: (selection?: vscode.Selection) => selection ? selectedText : "full content"
         },
-        selection: { isEmpty: false, active: new vscode.Position(0,0), anchor: new vscode.Position(0,0), start: new vscode.Position(0,0), end: new vscode.Position(0,10) } as vscode.Selection // Mock non-empty selection
+        selection: { isEmpty: false, active: new vscode.Position(0,0), anchor: new vscode.Position(0,0), start: new vscode.Position(0,0), end: new vscode.Position(0,10) } as vscode.Selection
       }),
       configurable: true
     });
 
     await vscode.commands.executeCommand('openhands.startConversationWithSelectionContext');
     assert.ok(sendTextSpy.called, 'terminal.sendText should be called');
-    assert.deepStrictEqual(sendTextSpy.lastArgs, [`openhands --task "${selectedText}"`, true]);
+    assert.deepStrictEqual(sendTextSpy.lastArgs, [`openhands --task "${expectedSanitizedText}"`, true]);
 
     if (originalActiveTextEditor) {
       Object.defineProperty(vscode.window, 'activeTextEditor', originalActiveTextEditor);
     }
+  });
+
+  suite('Task Sanitization Tests', () => {
+    const testCases = [
+      { name: 'backslashes', input: 'c:\\path\\to\\file', expected: 'c:\\\\path\\\\to\\\\file' },
+      { name: 'backticks', input: '`code` example', expected: '\\`code\\` example' },
+      { name: 'dollars', input: 'var is $val', expected: 'var is \\$val' },
+      { name: 'quotes', input: 'text with "quotes"', expected: 'text with \\\"quotes\\\"' },
+      {
+        name: 'combination',
+        input: 'complex "str`\\` $var" end',
+        expected: 'complex \\\"str\\\\`\\\\\\\\` \\$var\\\" end'
+      },
+      {
+        name: 'already escaped backslash before special char',
+        input: 'already \\$escaped',
+        expected: 'already \\\\\\$escaped' // \\ -> \\\\, $ -> \\$ => \\\\\\$escaped
+      }
+    ];
+
+    testCases.forEach(tc => {
+      test(`should correctly sanitize task with ${tc.name}`, async () => {
+        const originalActiveTextEditor = Object.getOwnPropertyDescriptor(vscode.window, 'activeTextEditor');
+        Object.defineProperty(vscode.window, 'activeTextEditor', {
+          get: () => ({
+            document: {
+              isUntitled: true, // Using untitled to pass content directly
+              uri: vscode.Uri.parse('untitled:Untitled-1'),
+              getText: () => tc.input
+            }
+          }),
+          configurable: true
+        });
+
+        await vscode.commands.executeCommand('openhands.startConversationWithFileContext'); // Using file context with untitled
+        assert.ok(sendTextSpy.called, 'terminal.sendText should be called');
+        assert.deepStrictEqual(sendTextSpy.lastArgs, [`openhands --task "${tc.expected}"`, true]);
+
+        if (originalActiveTextEditor) {
+          Object.defineProperty(vscode.window, 'activeTextEditor', originalActiveTextEditor);
+        }
+      });
+    });
   });
 
   test('openhands.startConversationWithSelectionContext (no selection) should show error', async () => {
@@ -236,4 +308,59 @@ suite('Extension Test Suite', () => {
     }
   });
 
+  suite('Error Handling in startOpenHandsInTerminal', () => {
+    const _originalCreateTerminal = vscode.window.createTerminal; // Store original for restoration
+    const _originalConsoleError = console.error; // Store original for restoration
+    let consoleErrorSpy: any;
+
+    setup(() => {
+        consoleErrorSpy = createManualSpy();
+        console.error = consoleErrorSpy;
+    });
+
+    teardown(() => { // Ensure original is restored after this suite's tests
+        vscode.window.createTerminal = _originalCreateTerminal;
+        console.error = _originalConsoleError;
+    });
+
+    test('should show error message if createTerminal fails', async () => {
+      vscode.window.createTerminal = () => { // Override the stub from outer setup
+        throw new Error('Test createTerminal error');
+      };
+      // Simulate no existing terminal to ensure createTerminal is called
+      Object.defineProperty(vscode.window, 'terminals', { get: () => [], configurable: true });
+
+
+      await vscode.commands.executeCommand('openhands.startConversation');
+
+      assert.ok(showErrorMessageSpy.called, 'showErrorMessage should be called on createTerminal failure');
+      assert.strictEqual(showErrorMessageSpy.lastArgs[0], 'OpenHands: Failed to start session in terminal. See developer console for details.');
+      assert.ok(consoleErrorSpy.called, 'console.error should be called');
+      assert.strictEqual(consoleErrorSpy.lastArgs[0], '[OpenHands Extension] Error in startOpenHandsInTerminal:');
+    });
+
+    test('should show error message if terminal.sendText fails', async () => {
+      const faultySendTextSpy = () => { // Changed to a function that throws
+          throw new Error('Test sendText error');
+      };
+
+       // Ensure createTerminal returns a terminal that will fail on sendText
+      vscode.window.createTerminal = (): vscode.Terminal => { // Override the stub from outer setup
+        return {
+            ...mockTerminal, // spread other properties from the global mock
+            sendText: faultySendTextSpy // override sendText
+        };
+      };
+      // Simulate no existing terminal to ensure createTerminal is called
+      Object.defineProperty(vscode.window, 'terminals', { get: () => [], configurable: true });
+
+
+      await vscode.commands.executeCommand('openhands.startConversation');
+
+      assert.ok(showErrorMessageSpy.called, 'showErrorMessage should be called on sendText failure');
+      assert.strictEqual(showErrorMessageSpy.lastArgs[0], 'OpenHands: Failed to start session in terminal. See developer console for details.');
+      assert.ok(consoleErrorSpy.called, 'console.error should be called');
+      assert.strictEqual(consoleErrorSpy.lastArgs[0], '[OpenHands Extension] Error in startOpenHandsInTerminal:');
+    });
+  });
 });
