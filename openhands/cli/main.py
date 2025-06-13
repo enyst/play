@@ -371,11 +371,42 @@ def attempt_vscode_extension_install():
 
         print('INFO: Setting up OpenHands VS Code integration...')
         extension_id = 'openhands.openhands-vscode'
-        install_command_executed = False
-        installation_successful_message_shown = False
+        vsix_filename = 'openhands-vscode-0.0.1.vsix'
+        vsix_install_success = False # Flag specific to VSIX success
 
-        # Install from Marketplace
-        if not installation_successful_message_shown: # This condition is now always true here, but kept for structure
+        # Attempt 1: Install from bundled .vsix
+        try:
+            vsix_resource_path = importlib.resources.files('openhands').joinpath(
+                'resources', vsix_filename
+            )
+            with importlib.resources.as_file(vsix_resource_path) as vsix_path:
+                if vsix_path.exists():
+                    logger.info(f"Attempting to install VS Code extension from bundled VSIX: {vsix_path}")
+                    process = subprocess.run(
+                        ['code', '--install-extension', str(vsix_path), '--force'],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    if process.returncode == 0:
+                        print(
+                            'INFO: VS Code extension successfully installed from bundled VSIX.'
+                        )
+                        vsix_install_success = True
+                    else:
+                        logger.warning(
+                            f'Bundled .vsix installation failed. RC: {process.returncode}, STDOUT: {process.stdout.strip()}, STDERR: {process.stderr.strip()}'
+                        )
+                else:
+                    logger.info(f"Bundled VSIX file not found at resolved path: {vsix_path}. Proceeding to Marketplace attempt.")
+        except FileNotFoundError:
+            logger.info(f"Could not locate bundled .vsix ('{vsix_filename}') via importlib.resources. Proceeding to Marketplace attempt.")
+        except Exception as e:
+            logger.info(f"Error while trying to access bundled .vsix: {e}. Proceeding to Marketplace attempt.")
+
+        # Attempt 2: Install from Marketplace (if VSIX install was not successful)
+        if not vsix_install_success:
+            logger.info("Attempting to install VS Code extension from Marketplace...")
             try:
                 process = subprocess.run(
                     ['code', '--install-extension', extension_id, '--force'],
@@ -383,47 +414,33 @@ def attempt_vscode_extension_install():
                     text=True,
                     check=False,
                 )
-                install_command_executed = True
                 if process.returncode == 0:
                     print(
-                        'INFO: VS Code extension installation command sent successfully.'
+                        'INFO: VS Code extension installation command sent successfully (Marketplace).'
                     )
-                    installation_successful_message_shown = True
+                    # No need to set vsix_install_success here, this is the fallback.
                 else:
-                    # This is a common failure point if 'code' is fine but install fails (e.g. user cancels prompt in VSCode)
                     print(
-                        'INFO: VS Code extension installation command might have failed.'
+                        'INFO: VS Code extension installation command might have failed (Marketplace).'
                     )
                     logger.warning(
                         f"Marketplace installation for '{extension_id}' failed. RC: {process.returncode}, STDOUT: {process.stdout.strip()}, STDERR: {process.stderr.strip()}"
                     )
-
             except FileNotFoundError:
                 print(
                     "INFO: 'code' command not found. Please ensure VS Code is installed and the 'code' command is in your PATH."
                 )
-                install_command_executed = False  # 'code' command itself failed
             except Exception as e:
                 print(
-                    f'INFO: An unexpected error occurred while trying to install the VS Code extension: {e}'
+                    f'INFO: An unexpected error occurred while trying to install the VS Code extension from Marketplace: {e}'
                 )
                 print(
                     f"      Please try installing '{extension_id}' manually from the VS Code Marketplace."
                 )
-                install_command_executed = False
-
-        # Final messages based on whether any command was run
-        if not install_command_executed and not installation_successful_message_shown:
-            # This case means 'code' was not found, and no prior success.
-            pass  # The FileNotFoundError message above is sufficient.
-        elif install_command_executed and not installation_successful_message_shown:
-            # Means 'code' ran but didn't result in a success message (e.g. user cancelled, other error)
-            # The messages printed during the marketplace attempt should cover this.
-            pass
 
         # Always mark attempt as done, regardless of success/failure of install attempts
         try:
-            flag_file.touch()  # Mark that an attempt (successful or not) was made
+            flag_file.touch()
         except OSError as e:
             logger.warning(f'Could not create VS Code extension attempt flag file: {e}')
 
